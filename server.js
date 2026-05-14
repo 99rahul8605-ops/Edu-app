@@ -31,6 +31,11 @@ app.get("/health", (req, res) => res.status(200).json({
 
 app.use("/api", require("./routes/course"));
 
+// Owner username frontend ko do
+app.get("/api/config", (req, res) => {
+  res.json({ ownerUsername: (process.env.OWNER_USERNAME || "").toLowerCase() });
+});
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
