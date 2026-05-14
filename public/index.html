@@ -133,6 +133,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{border-color:var(--green);color:var(--green)}
 .toast.error{border-color:var(--red);color:var(--red)}
+.sending-popup{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2235;border:1px solid var(--accent);border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:10px;z-index:999;transition:transform 0.3s cubic-bezier(.4,0,.2,1);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,0.4)}
+.sending-popup.show{transform:translateX(-50%) translateY(0)}
+.sending-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.sending-text{font-size:13px;font-weight:500;color:var(--text)}
 </style>
 </head>
 <body>
@@ -285,6 +290,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   </div>
 </div>
 
+<div class="sending-popup" id="sendingPopup">
+  <div class="sending-dot"></div>
+  <span class="sending-text">Lecture sent to your Telegram! 📩</span>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -429,6 +438,13 @@ function openUnit(bid, sid, cid, uid) {
 function openLink(url) {
   if (tg) tg.openTelegramLink(url);
   else window.open(url, '_blank');
+  showSendingPopup();
+}
+
+function showSendingPopup() {
+  var p = document.getElementById('sendingPopup');
+  p.classList.add('show');
+  setTimeout(() => p.classList.remove('show'), 2500);
 }
 
 // ── Load ──────────────────────────────────────────────────────────────────────
