@@ -1,16 +1,18 @@
+const TelegramBot = require("node-telegram-bot-api");
 const mongoose = require("mongoose");
 const express = require("express");
 const path = require("path");
 
+const TOKEN = process.env.BOT_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
+const WEB_URL = process.env.WEB_URL; // Render URL e.g. https://edu-app.onrender.com
 const PORT = process.env.PORT || 3000;
 
-if (!MONGO_URI) {
-  console.error("Missing env: MONGO_URI required hai.");
+if (!TOKEN || !MONGO_URI || !WEB_URL) {
+  console.error("Missing env: BOT_TOKEN, MONGO_URI, WEB_URL required hai.");
   process.exit(1);
 }
 
-// ─── MongoDB ──────────────────────────────────────────────────────────────────
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -21,19 +23,49 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Health check
 app.get("/health", (req, res) => res.status(200).json({
   status: "ok",
   uptime: process.uptime(),
   mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
 }));
 
-// Course API
 app.use("/api", require("./routes/course"));
 
-// Mini App
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.listen(PORT, () => console.log(`Edu server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// ─── Bot ──────────────────────────────────────────────────────────────────────
+async function startBot() {
+  console.log("Purani polling clear kar raha hoon...");
+  await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1&timeout=0`);
+
+  const bot = new TelegramBot(TOKEN, { polling: true });
+  const me = await bot.getMe();
+  console.log(`Bot started: @${me.username}`);
+
+  bot.onText(/\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id,
+      `👋 Hello ${msg.from.first_name}!\n\n` +
+      `Neeche button dabao aur saare lectures dekho! 📚`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "📚 Lectures Dekho", url: WEB_URL }
+          ]]
+        }
+      }
+    );
+  });
+
+  bot.on("polling_error", (err) => console.error("Polling error:", err.message));
+  process.on("SIGTERM", () => { bot.stopPolling(); mongoose.connection.close(); process.exit(0); });
+  process.on("SIGINT",  () => { bot.stopPolling(); mongoose.connection.close(); process.exit(0); });
+}
+
+startBot().catch((err) => {
+  console.error("Bot startup error:", err.message);
+  process.exit(1);
+});
