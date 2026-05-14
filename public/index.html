@@ -337,11 +337,11 @@ function renderSubjects(list) {
               <div class="lectures">
                 ${!c.lectures.length ? '<div style="padding:10px 32px;font-size:12px;color:var(--text3)">No lectures yet</div>' :
                   c.lectures.map((l,li) => `
-                    <a class="lecture-item" href="${l.link}" onclick="openLink(event,'${l.link}')">
+                    <div class="lecture-item" onclick="openLink('${l.link}')">
                       <div class="lec-num">${li+1}</div>
                       <span class="lec-name">${l.name}</span>
                       <div class="lec-play"><i class="ti ti-player-play"></i></div>
-                    </a>`).join('')}
+                    </div>`).join('')}
               </div>
             </div>`).join('')}
       </div>
@@ -349,8 +349,7 @@ function renderSubjects(list) {
 }
 
 // Link Telegram ke andar hi khule
-function openLink(e, url) {
-  e.preventDefault();
+function openLink(url) {
   if (tg) {
     tg.openTelegramLink(url);
   } else {
