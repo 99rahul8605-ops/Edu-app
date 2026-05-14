@@ -72,12 +72,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .unit-icon{width:34px;height:34px;border-radius:8px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 
 /* Lecture row */
-.lec-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;padding:12px 14px;gap:12px;cursor:pointer;transition:background 0.15s}
-.lec-row:active{background:var(--surface2);border-color:var(--accent)}
+.lec-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:background 0.15s}
+.lec-row:active{background:var(--surface2)}
+.lec-row-top{display:flex;align-items:center;gap:12px}
 .lec-num{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
 .lec-name{flex:1;font-size:14px;font-weight:500;line-height:1.3}
-.lec-play{width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.lec-play i{font-size:12px;color:#fff;margin-left:2px}
+.lec-btns{display:flex;gap:8px;margin-top:10px;margin-left:46px}
+.lec-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:var(--radius-sm);border:none;font-size:12px;font-weight:600;cursor:pointer}
+.lec-btn-watch{background:var(--accent);color:#fff}
+.lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+.lec-btn-notes:active{border-color:var(--accent);color:var(--accent)}
 
 /* Section label */
 .sec-label{padding:14px 16px 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
@@ -282,6 +286,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="form-group"><label class="form-label">Unit (optional — agar unit nahi hai to empty rakho)</label><select class="form-select" id="lUnit"></select></div>
       <div class="form-group"><label class="form-label">Lecture Name</label><input class="form-input" id="lName" placeholder="e.g. Introduction to Limits"></div>
       <div class="form-group"><label class="form-label">Bot Link</label><input class="form-input" id="lLink" placeholder="https://t.me/YourBot?start=CODE"></div>
+      <div class="form-group"><label class="form-label">Class Notes Link <span style="color:var(--text3);font-weight:400">(optional)</span></label><input class="form-input" id="lNotes" placeholder="https://t.me/YourBot?start=NOTES_CODE"></div>
       <button class="btn-add" id="btnLecture" onclick="addLecture()"><i class="ti ti-plus"></i> Add Lecture</button>
     </div>
 
@@ -435,14 +440,16 @@ function openUnit(bid, sid, cid, uid) {
   goTo('lectures');
 }
 
-function openLink(url) {
+function openLink(url, type) {
   if (tg) tg.openTelegramLink(url);
   else window.open(url, '_blank');
-  showSendingPopup();
+  showSendingPopup(type);
 }
 
-function showSendingPopup() {
+function showSendingPopup(type) {
   var p = document.getElementById('sendingPopup');
+  var txt = p.querySelector('.sending-text');
+  txt.textContent = type === 'notes' ? 'Class notes sent to your Telegram! 📝' : 'Lecture sent to your Telegram! 📩';
   p.classList.add('show');
   setTimeout(() => p.classList.remove('show'), 2500);
 }
@@ -637,10 +644,11 @@ async function addLecture() {
   setLoading('btnLecture',true);
   try {
     var url = uid ? `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}/lectures` : `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/lectures`;
-    var updated = await apiFetch(url,'POST',{name,link});
+    var notes = document.getElementById('lNotes').value.trim();
+    var updated = await apiFetch(url,'POST',{name,link,notes});
     var idx = batches.findIndex(x=>x._id===bid); if(idx>=0) batches[idx]=updated;
     populateAllSelects();
-    document.getElementById('lName').value=''; document.getElementById('lLink').value='';
+    document.getElementById('lName').value=''; document.getElementById('lLink').value=''; document.getElementById('lNotes').value='';
     toast('Lecture add ho gaya!','success');
   } catch(e){toast('Error: '+e.message,'error');}
   setLoading('btnLecture',false,'<i class="ti ti-plus"></i> Add Lecture');
