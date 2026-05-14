@@ -19,7 +19,6 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => { console.error("MongoDB error:", err.message); process.exit(1); });
 
-// ─── Express ──────────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -38,18 +37,16 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-// ─── Clear old polling (https module se) ─────────────────────────────────────
 function clearOldPolling() {
   return new Promise((resolve) => {
     const url = `https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1&timeout=0`;
     https.get(url, (res) => {
       res.resume();
       res.on("end", resolve);
-    }).on("error", resolve); // error aaye tab bhi continue karo
+    }).on("error", resolve);
   });
 }
 
-// ─── Bot ──────────────────────────────────────────────────────────────────────
 async function startBot() {
   console.log("Purani polling clear kar raha hoon...");
   await clearOldPolling();
@@ -65,7 +62,8 @@ async function startBot() {
       {
         reply_markup: {
           inline_keyboard: [[
-            { text: "📚 Lectures Dekho", url: WEB_URL }
+            // web_app se Telegram Mini App ke andar khulega
+            { text: "📚 Lectures Dekho", web_app: { url: WEB_URL } }
           ]]
         }
       }
