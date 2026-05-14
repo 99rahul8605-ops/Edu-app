@@ -173,16 +173,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="nav-item nav-admin" id="navManage" onclick="openAdminWithAuth('manage')"><i class="ti ti-list"></i>Manage</div>
 </div>
 
-<!-- Password Modal -->
-<div class="pass-modal" id="passModal">
-  <div class="pass-box">
-    <h3>🔐 Admin Access</h3>
-    <p>Password enter karo</p>
-    <input type="password" id="passInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPass()">
-    <div class="pass-error" id="passError">Wrong password!</div>
-    <button class="btn-add" onclick="checkPass()"><i class="ti ti-lock-open"></i> Enter</button>
-  </div>
-</div>
+<!-- No password modal needed - username se check hota hai -->
 
 <!-- Admin Modal -->
 <div class="modal-overlay" id="adminModal" onclick="closeModalOutside(event)">
@@ -241,17 +232,34 @@ if (tg) {
   tg.expand();
 }
 
-var ADMIN_PASS = '';
 var subjects = [];
 var pendingTab = null;
 var isAdmin = false;
 
-// Admin check — URL param se ya manually login
-function checkAdminAccess() {
-  // URL mein ?admin=1 ho to admin button dikhao (sirf tum jaante ho)
-  var urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('admin') === '1') {
-    showAdminUI();
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Telegram username se admin check karo
+async function checkAdminAccess() {
+  try {
+    var config = await (await fetch('/api/config')).json();
+    var ownerUsername = config.ownerUsername.toLowerCase();
+    if (!ownerUsername) return;
+
+    // Telegram WebApp se current user ka username lo
+    var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    var currentUsername = tgUser ? tgUser.username.toLowerCase() : "";
+
+    if (currentUsername && currentUsername === ownerUsername) {
+      isAdmin = true;
+      showAdminUI();
+    }
+  } catch(e) {
+    console.log("Admin check failed:", e.message);
   }
 }
 
@@ -261,40 +269,19 @@ function showAdminUI() {
   document.getElementById('navManage').classList.add('visible');
 }
 
-function toast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
 function openAdminWithAuth(tab) {
-  pendingTab = tab || 'add-subject';
-  if (ADMIN_PASS) { openAdmin(pendingTab); return; }
-  document.getElementById('passInput').value = '';
-  document.getElementById('passError').style.display = 'none';
-  document.getElementById('passModal').classList.add('show');
-  setTimeout(() => document.getElementById('passInput').focus(), 100);
-}
-
-function checkPass() {
-  var p = document.getElementById('passInput').value;
-  if (!p) return;
-  fetch('/api/subjects', { headers: { 'x-admin-password': p } }).then(r => {
-    if (r.status === 401) {
-      document.getElementById('passError').style.display = 'block';
-      document.getElementById('passInput').value = '';
-    } else {
-      ADMIN_PASS = p;
-      document.getElementById('passModal').classList.remove('show');
-      showAdminUI();
-      openAdmin(pendingTab);
-    }
-  });
+  if (!isAdmin) return;
+  openAdmin(tab || 'add-subject');
 }
 
 async function apiFetch(url, method, body) {
-  var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json', 'x-admin-password': ADMIN_PASS } };
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-tg-init-data': tg ? tg.initData : ''
+    }
+  };
   if (body) opts.body = JSON.stringify(body);
   var r = await fetch(url, opts);
   if (!r.ok) throw new Error(await r.text());
