@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const lectureSchema = new mongoose.Schema({
   name: { type: String, required: true },
   link: { type: String, required: true },
+  notes: { type: String, default: "" }, // optional class notes link
   order: { type: Number, default: 0 },
 });
 
