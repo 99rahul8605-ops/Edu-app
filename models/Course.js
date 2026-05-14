@@ -6,10 +6,17 @@ const lectureSchema = new mongoose.Schema({
   order: { type: Number, default: 0 },
 });
 
-const chapterSchema = new mongoose.Schema({
+const unitSchema = new mongoose.Schema({
   name: { type: String, required: true },
   order: { type: Number, default: 0 },
   lectures: [lectureSchema],
+});
+
+const chapterSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  order: { type: Number, default: 0 },
+  units: [unitSchema],
+  lectures: [lectureSchema], // agar unit nahi hai to seedha lectures
 });
 
 const subjectSchema = new mongoose.Schema({
@@ -20,4 +27,12 @@ const subjectSchema = new mongoose.Schema({
   chapters: [chapterSchema],
 });
 
-module.exports = mongoose.model("Subject", subjectSchema);
+const batchSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  pic: { type: String, default: "" }, // base64 image
+  description: { type: String, default: "" },
+  order: { type: Number, default: 0 },
+  subjects: [subjectSchema],
+});
+
+module.exports = mongoose.model("Batch", batchSchema);
