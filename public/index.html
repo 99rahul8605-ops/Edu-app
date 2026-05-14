@@ -565,8 +565,9 @@ async function addBatch() {
   if (!name) return toast('Batch name daalo!','error');
   setLoading('btnBatch',true);
   try {
-    await apiFetch('/api/batches','POST',{name, description:desc, pic:picBase64});
-    await load(); populateAllSelects();
+    var newBatch = await apiFetch('/api/batches','POST',{name, description:desc, pic:picBase64});
+    batches.push(newBatch);
+    renderBatches(batches); populateAllSelects();
     document.getElementById('bName').value=''; document.getElementById('bDesc').value='';
     document.getElementById('imgPreview').innerHTML='<div class="img-preview-label"><i class="ti ti-camera" style="font-size:24px;display:block;margin-bottom:6px;color:var(--text3)"></i>Tap to select image</div>';
     picBase64='';
@@ -579,8 +580,12 @@ async function addSubject() {
   var bid=document.getElementById('sBatch').value, name=document.getElementById('sName').value.trim(), icon=document.getElementById('sIcon').value.trim()||'📚', color=document.getElementById('sColor').value;
   if(!bid||!name) return toast('Sab fields bharein!','error');
   setLoading('btnSubject',true);
-  try { await apiFetch(`/api/batches/${bid}/subjects`,'POST',{name,icon,color}); await load(); populateAllSelects(); document.getElementById('sName').value=''; toast('Subject add ho gaya!','success'); }
-  catch(e){toast('Error: '+e.message,'error');}
+  try {
+    var updated = await apiFetch(`/api/batches/${bid}/subjects`,'POST',{name,icon,color});
+    var idx = batches.findIndex(x=>x._id===bid); if(idx>=0) batches[idx]=updated;
+    renderBatches(batches); populateAllSelects();
+    document.getElementById('sName').value=''; toast('Subject add ho gaya!','success');
+  } catch(e){toast('Error: '+e.message,'error');}
   setLoading('btnSubject',false,'<i class="ti ti-plus"></i> Add Subject');
 }
 
@@ -588,8 +593,12 @@ async function addChapter() {
   var bid=document.getElementById('cBatch').value, sid=document.getElementById('cSubject').value, name=document.getElementById('cName').value.trim();
   if(!bid||!sid||!name) return toast('Sab fields bharein!','error');
   setLoading('btnChapter',true);
-  try { await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters`,'POST',{name}); await load(); populateAllSelects(); document.getElementById('cName').value=''; toast('Chapter add ho gaya!','success'); }
-  catch(e){toast('Error: '+e.message,'error');}
+  try {
+    var updated = await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters`,'POST',{name});
+    var idx = batches.findIndex(x=>x._id===bid); if(idx>=0) batches[idx]=updated;
+    populateAllSelects();
+    document.getElementById('cName').value=''; toast('Chapter add ho gaya!','success');
+  } catch(e){toast('Error: '+e.message,'error');}
   setLoading('btnChapter',false,'<i class="ti ti-plus"></i> Add Chapter');
 }
 
@@ -597,8 +606,12 @@ async function addUnit() {
   var bid=document.getElementById('uBatch').value, sid=document.getElementById('uSubject').value, cid=document.getElementById('uChapter').value, name=document.getElementById('uName').value.trim();
   if(!bid||!sid||!cid||!name) return toast('Sab fields bharein!','error');
   setLoading('btnUnit',true);
-  try { await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units`,'POST',{name}); await load(); populateAllSelects(); document.getElementById('uName').value=''; toast('Unit add ho gaya!','success'); }
-  catch(e){toast('Error: '+e.message,'error');}
+  try {
+    var updated = await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units`,'POST',{name});
+    var idx = batches.findIndex(x=>x._id===bid); if(idx>=0) batches[idx]=updated;
+    populateAllSelects();
+    document.getElementById('uName').value=''; toast('Unit add ho gaya!','success');
+  } catch(e){toast('Error: '+e.message,'error');}
   setLoading('btnUnit',false,'<i class="ti ti-plus"></i> Add Unit');
 }
 
@@ -608,7 +621,9 @@ async function addLecture() {
   setLoading('btnLecture',true);
   try {
     var url = uid ? `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}/lectures` : `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/lectures`;
-    await apiFetch(url,'POST',{name,link}); await load(); populateAllSelects();
+    var updated = await apiFetch(url,'POST',{name,link});
+    var idx = batches.findIndex(x=>x._id===bid); if(idx>=0) batches[idx]=updated;
+    populateAllSelects();
     document.getElementById('lName').value=''; document.getElementById('lLink').value='';
     toast('Lecture add ho gaya!','success');
   } catch(e){toast('Error: '+e.message,'error');}
@@ -635,13 +650,17 @@ function renderManage() {
   document.getElementById('manageList').innerHTML = html||'<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Kuch nahi hai</div>';
 }
 
-async function delBatch(bid){if(!confirm('Batch delete?'))return;try{await apiFetch(`/api/batches/${bid}`,'DELETE');await load();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delSubject(bid,sid){if(!confirm('Subject delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}`,'DELETE');await load();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delChapter(bid,sid,cid){if(!confirm('Chapter delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}`,'DELETE');await load();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delUnit(bid,sid,cid,uid){if(!confirm('Unit delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}`,'DELETE');await load();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delBatch(bid){if(!confirm('Batch delete?'))return;try{await apiFetch(`/api/batches/${bid}`,'DELETE');batches=batches.filter(x=>x._id!==bid);renderBatches(batches);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delSubject(bid,sid){if(!confirm('Subject delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}`,'DELETE');var b=batches.find(x=>x._id===bid);if(b)b.subjects=b.subjects.filter(x=>x._id!==sid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delChapter(bid,sid,cid){if(!confirm('Chapter delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);if(s)s.chapters=s.chapters.filter(x=>x._id!==cid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delUnit(bid,sid,cid,uid){if(!confirm('Unit delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);var c=s&&s.chapters.find(x=>x._id===cid);if(c)c.units=c.units.filter(x=>x._id!==uid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
 async function delLecture(bid,sid,cid,uid,lid){if(!confirm('Lecture delete?'))return;try{
   var url = uid ? `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}/lectures/${lid}` : `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/lectures/${lid}`;
-  await apiFetch(url,'DELETE');await load();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+  await apiFetch(url,'DELETE');
+  var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);var c=s&&s.chapters.find(x=>x._id===cid);
+  if(uid){var u=c&&c.units.find(x=>x._id===uid);if(u)u.lectures=u.lectures.filter(x=>x._id!==lid);}
+  else{if(c)c.lectures=c.lectures.filter(x=>x._id!==lid);}
+  populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
 
 checkAdminAccess();
 load();
