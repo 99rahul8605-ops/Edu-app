@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EduBot — Video Lectures</title>
-<!-- Telegram Mini App SDK -->
+<title>EduBot</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
@@ -16,118 +15,113 @@
   --green:#22c55e;--red:#ef4444;--border:#1e2d45;
   --radius:12px;--radius-sm:8px;
 }
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;user-select:none}
-.app{max-width:480px;margin:0 auto;padding-bottom:80px}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
 
-.header{background:#0d1224;padding:18px 16px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
-.logo-name{font-size:17px;font-weight:700;letter-spacing:-0.3px}
-.logo-tag{font-size:11px;color:var(--text2);margin-top:1px}
-.admin-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:7px 13px;border-radius:20px;font-size:12px;cursor:pointer;display:none;align-items:center;gap:5px;transition:all 0.2s}
+/* ── Page System ── */
+.page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden}
+.page.active{transform:translateX(0)}
+.page.prev{transform:translateX(-30%)}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0;min-height:56px}
+.back-btn{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.topbar-title{flex:1;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.admin-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;display:none;align-items:center;gap:5px}
 .admin-btn.visible{display:flex}
-.admin-btn:hover{border-color:var(--accent);color:var(--accent)}
-.search-wrap{position:relative}
-.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px 10px 38px;border-radius:var(--radius-sm);font-size:14px;outline:none;transition:border-color 0.2s}
+
+/* ── Scroll area ── */
+.page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── Home search ── */
+.search-wrap{padding:12px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0}
+.search-inner{position:relative}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px 10px 38px;border-radius:var(--radius-sm);font-size:14px;outline:none}
 .search-input:focus{border-color:var(--accent)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
 
-.stats{display:flex;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+/* ── Stats ── */
+.stats{display:flex;padding:14px 0;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 .stat{flex:1;text-align:center;padding:0 8px}
 .stat+.stat{border-left:1px solid var(--border)}
-.stat-num{font-size:22px;font-weight:700;color:var(--accent);line-height:1}
-.stat-label{font-size:11px;color:var(--text2);margin-top:4px}
+.stat-num{font-size:20px;font-weight:700;color:var(--accent);line-height:1}
+.stat-label{font-size:11px;color:var(--text2);margin-top:3px}
 
-.section-label{padding:16px 16px 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
+/* ── Section label ── */
+.section-label{padding:14px 16px 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
 
-.subjects{padding:0 16px;display:flex;flex-direction:column;gap:10px}
-.subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s}
-.subject-card.open{border-color:var(--accent)}
-.subject-header{display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer}
-.subject-header:active{background:var(--surface2)}
-.subj-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+/* ── Subject cards (home) ── */
+.subject-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;padding:14px 16px;gap:14px;cursor:pointer;transition:border-color 0.2s,background 0.15s}
+.subject-card:active{background:var(--surface2)}
+.subj-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .subj-info{flex:1;min-width:0}
-.subj-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.subj-meta{font-size:12px;color:var(--text2);margin-top:2px}
-.subj-badge{background:var(--surface3);color:var(--text2);padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;flex-shrink:0}
-.subj-arrow{color:var(--text3);font-size:16px;transition:transform 0.25s;flex-shrink:0}
-.subject-card.open .subj-arrow{transform:rotate(180deg);color:var(--accent)}
+.subj-name{font-size:15px;font-weight:600}
+.subj-meta{font-size:12px;color:var(--text2);margin-top:3px}
+.subj-arrow{color:var(--text3);font-size:18px;flex-shrink:0}
 
-.chapters{display:none;border-top:1px solid var(--border)}
-.subject-card.open .chapters{display:block}
-.chapter{border-bottom:1px solid var(--border)}
-.chapter:last-child{border-bottom:none}
-.chapter-header{display:flex;align-items:center;padding:11px 16px;gap:10px;cursor:pointer}
-.chapter-header:active{background:var(--surface2)}
-.chap-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.chap-name{flex:1;font-size:13px;font-weight:500}
-.chap-count{font-size:11px;color:var(--text2);background:var(--surface3);padding:2px 7px;border-radius:8px}
-.chap-arrow{color:var(--text3);font-size:13px;transition:transform 0.2s;flex-shrink:0}
-.chapter.open .chap-arrow{transform:rotate(180deg);color:var(--accent)}
+/* ── Chapter list ── */
+.chapter-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.chapter-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer;transition:background 0.15s}
+.chapter-card:active{background:var(--surface2)}
+.chap-num{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.chap-info{flex:1;min-width:0}
+.chap-name{font-size:14px;font-weight:600}
+.chap-count{font-size:12px;color:var(--text2);margin-top:3px}
+.chap-arrow{color:var(--text3);font-size:18px;flex-shrink:0}
 
-.lectures{display:none;background:var(--surface2)}
-.chapter.open .lectures{display:block}
-.lecture-item{display:flex;align-items:center;padding:10px 16px 10px 32px;gap:10px;cursor:pointer;border-bottom:1px solid var(--border);text-decoration:none}
-.lecture-item:last-child{border-bottom:none}
-.lecture-item:active{background:var(--surface3)}
-.lec-num{width:26px;height:26px;border-radius:7px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0}
-.lec-name{flex:1;font-size:13px;color:var(--text);line-height:1.3}
-.lec-play{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.lec-play i{font-size:12px;color:#fff;margin-left:2px}
+/* ── Lecture list ── */
+.lecture-list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+.lecture-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer;transition:background 0.15s}
+.lecture-card:active{background:var(--surface2);border-color:var(--accent)}
+.lec-num{width:36px;height:36px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.lec-info{flex:1;min-width:0}
+.lec-name{font-size:14px;font-weight:500;line-height:1.3}
+.lec-play{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lec-play i{font-size:13px;color:#fff;margin-left:2px}
 
+/* ── Subject header card ── */
+.page-hero{margin:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:16px}
+.hero-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.hero-name{font-size:18px;font-weight:700}
+.hero-meta{font-size:13px;color:var(--text2);margin-top:4px}
+
+/* ── Loading / Empty ── */
 .loading{text-align:center;padding:50px 20px;color:var(--text2)}
 .loading i{font-size:32px;color:var(--accent);display:block;margin-bottom:10px;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:50px 20px;color:var(--text2);font-size:14px}
 .empty i{font-size:44px;color:var(--text3);display:block;margin-bottom:12px}
 
+/* ── Admin Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-end;justify-content:center}
 .modal-overlay.show{display:flex}
 .modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;position:relative}
 .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
 .modal-close{position:absolute;right:16px;top:16px;background:var(--surface2);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.modal-title i{color:var(--accent);font-size:18px}
-
-.tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px}
-.tab-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.modal-title i{color:var(--accent)}
+.tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto}
+.tab-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap}
 .tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tab-content{display:none}
-.tab-content.active{display:block}
-
+.tab-content{display:none}.tab-content.active{display:block}
 .form-group{margin-bottom:14px}
 .form-label{font-size:12px;color:var(--text2);margin-bottom:6px;display:block;font-weight:500}
-.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:var(--radius-sm);font-size:14px;outline:none;transition:border-color 0.2s}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:var(--radius-sm);font-size:14px;outline:none}
 .form-input:focus,.form-select:focus{border-color:var(--accent)}
 .form-select{appearance:none;cursor:pointer}
 .btn-add{width:100%;background:var(--accent);color:#fff;border:none;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn-add:disabled{opacity:0.5;cursor:not-allowed}
-
+.btn-add:disabled{opacity:0.5}
 .manage-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:7px}
 .manage-item-icon{font-size:18px;flex-shrink:0}
 .manage-item-info{flex:1;min-width:0}
 .manage-item-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .manage-item-sub{font-size:11px;color:var(--text2);margin-top:2px}
-.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;font-size:17px}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:6px;display:flex;align-items:center;font-size:17px}
 .del-btn:hover{color:var(--red)}
 
-.pass-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center}
-.pass-modal.show{display:flex}
-.pass-box{background:var(--surface);border-radius:var(--radius);padding:24px;width:90%;max-width:320px;text-align:center}
-.pass-box h3{font-size:16px;font-weight:700;margin-bottom:6px}
-.pass-box p{font-size:13px;color:var(--text2);margin-bottom:16px}
-.pass-box input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px;border-radius:var(--radius-sm);font-size:14px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:12px}
-.pass-box input:focus{border-color:var(--accent)}
-.pass-error{font-size:12px;color:var(--red);margin-top:-8px;margin-bottom:10px;display:none}
-
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 12px}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;padding:4px 0}
-.nav-item.active,.nav-item:hover{color:var(--accent)}
-.nav-item i{font-size:21px}
-.nav-admin{display:none}
-.nav-admin.visible{display:flex}
-
+/* ── Toast ── */
 .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{border-color:var(--green);color:var(--green)}
@@ -135,47 +129,72 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div class="header-top">
-      <div class="logo">
-        <div class="logo-icon">📚</div>
-        <div>
-          <div class="logo-name">EduBot</div>
-          <div class="logo-tag">Video Lectures</div>
-        </div>
+
+<!-- ══ PAGE 1: Home ══ -->
+<div class="page active" id="page-home">
+  <div class="topbar">
+    <div class="logo" style="display:flex;align-items:center;gap:10px;flex:1">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#4f8ef7,#7c5cbf);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px">📚</div>
+      <div>
+        <div style="font-size:15px;font-weight:700">EduBot</div>
+        <div style="font-size:10px;color:var(--text2)">Video Lectures</div>
       </div>
-      <button class="admin-btn" id="adminBtn" onclick="openAdminWithAuth()">
-        <i class="ti ti-settings" style="font-size:14px"></i> Admin
-      </button>
     </div>
-    <div class="search-wrap">
+    <button class="admin-btn" id="adminBtn" onclick="openAdmin()">
+      <i class="ti ti-settings" style="font-size:13px"></i> Admin
+    </button>
+  </div>
+  <div class="search-wrap">
+    <div class="search-inner">
       <i class="ti ti-search search-icon"></i>
-      <input class="search-input" id="searchInput" placeholder="Search..." oninput="handleSearch(this.value)">
+      <input class="search-input" id="searchInput" placeholder="Search subjects..." oninput="handleSearch(this.value)">
     </div>
   </div>
-
   <div class="stats" id="statsBar">
     <div class="stat"><div class="stat-num">—</div><div class="stat-label">Subjects</div></div>
     <div class="stat"><div class="stat-num">—</div><div class="stat-label">Chapters</div></div>
     <div class="stat"><div class="stat-num">—</div><div class="stat-label">Lectures</div></div>
   </div>
-
-  <div class="section-label">All Subjects</div>
-  <div class="subjects" id="subjectList">
-    <div class="loading"><i class="ti ti-loader-2"></i>Loading...</div>
+  <div class="page-body">
+    <div class="section-label">All Subjects</div>
+    <div class="subject-list" id="subjectList">
+      <div class="loading"><i class="ti ti-loader-2"></i>Loading...</div>
+    </div>
   </div>
 </div>
 
-<div class="bottom-nav">
-  <div class="nav-item active" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="ti ti-home"></i>Home</div>
-  <div class="nav-item nav-admin" id="navAdd" onclick="openAdminWithAuth('add-lecture')"><i class="ti ti-upload"></i>Add</div>
-  <div class="nav-item nav-admin" id="navManage" onclick="openAdminWithAuth('manage')"><i class="ti ti-list"></i>Manage</div>
+<!-- ══ PAGE 2: Chapters ══ -->
+<div class="page" id="page-chapters">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1;min-width:0">
+      <div class="topbar-title" id="chapPageTitle">Chapters</div>
+      <div class="topbar-sub" id="chapPageSub"></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="page-hero" id="chapHero"></div>
+    <div class="section-label">Chapters</div>
+    <div class="chapter-list" id="chapterList"></div>
+  </div>
 </div>
 
-<!-- No password modal needed - username se check hota hai -->
+<!-- ══ PAGE 3: Lectures ══ -->
+<div class="page" id="page-lectures">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1;min-width:0">
+      <div class="topbar-title" id="lecPageTitle">Lectures</div>
+      <div class="topbar-sub" id="lecPageSub"></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="section-label">Lectures</div>
+    <div class="lecture-list" id="lectureList"></div>
+  </div>
+</div>
 
-<!-- Admin Modal -->
+<!-- ══ Admin Modal ══ -->
 <div class="modal-overlay" id="adminModal" onclick="closeModalOutside(event)">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -187,7 +206,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <button class="tab-btn" onclick="switchTab('add-lecture')">+ Lecture</button>
       <button class="tab-btn" onclick="switchTab('manage')">Manage</button>
     </div>
-
     <div class="tab-content active" id="tab-add-subject">
       <div class="form-group"><label class="form-label">Subject Name</label><input class="form-input" id="sName" placeholder="e.g. Mathematics"></div>
       <div class="form-group"><label class="form-label">Icon (emoji)</label><input class="form-input" id="sIcon" placeholder="📐" maxlength="4" style="font-size:20px"></div>
@@ -201,13 +219,11 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       </div>
       <button class="btn-add" id="btnAddSubject" onclick="addSubject()"><i class="ti ti-plus"></i> Add Subject</button>
     </div>
-
     <div class="tab-content" id="tab-add-chapter">
       <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="cSubject"></select></div>
       <div class="form-group"><label class="form-label">Chapter Name</label><input class="form-input" id="cName" placeholder="e.g. Chapter 1 - Algebra"></div>
       <button class="btn-add" id="btnAddChapter" onclick="addChapter()"><i class="ti ti-plus"></i> Add Chapter</button>
     </div>
-
     <div class="tab-content" id="tab-add-lecture">
       <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="lSubject" onchange="updateLecChapters()"></select></div>
       <div class="form-group"><label class="form-label">Chapter</label><select class="form-select" id="lChapter"></select></div>
@@ -215,86 +231,116 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="form-group"><label class="form-label">Bot Link</label><input class="form-input" id="lLink" placeholder="https://t.me/YourBot?start=CODE"></div>
       <button class="btn-add" id="btnAddLecture" onclick="addLecture()"><i class="ti ti-plus"></i> Add Lecture</button>
     </div>
-
-    <div class="tab-content" id="tab-manage">
-      <div id="manageList"></div>
-    </div>
+    <div class="tab-content" id="tab-manage"><div id="manageList"></div></div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// Telegram WebApp init
 var tg = window.Telegram && window.Telegram.WebApp;
-if (tg) {
-  tg.ready();
-  tg.expand();
-}
+if (tg) { tg.ready(); tg.expand(); }
 
 var subjects = [];
-var pendingTab = null;
 var isAdmin = false;
+var pageStack = ['home'];
 
-function toast(msg, type) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (type ? ' ' + type : '');
-  setTimeout(() => t.classList.remove('show'), 2800);
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goTo(pageId) {
+  var current = pageStack[pageStack.length - 1];
+  document.getElementById('page-' + current).classList.remove('active');
+  document.getElementById('page-' + current).classList.add('prev');
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.getElementById('page-' + pageId).classList.remove('prev');
+  pageStack.push(pageId);
+  if (tg) tg.BackButton.show();
 }
 
-// Telegram username se admin check karo
-async function checkAdminAccess() {
-  try {
-    var config = await (await fetch('/api/config')).json();
-    var ownerUsername = config.ownerUsername.toLowerCase();
-    if (!ownerUsername) return;
+function goBack() {
+  if (pageStack.length <= 1) return;
+  var current = pageStack.pop();
+  var prev = pageStack[pageStack.length - 1];
+  document.getElementById('page-' + current).classList.remove('active');
+  document.getElementById('page-' + current).classList.remove('prev');
+  document.getElementById('page-' + current).style.transform = '';
+  document.getElementById('page-' + prev).classList.add('active');
+  document.getElementById('page-' + prev).classList.remove('prev');
+  if (pageStack.length <= 1 && tg) tg.BackButton.hide();
+}
 
-    // Telegram WebApp se current user ka username lo
-    var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-    var currentUsername = tgUser ? tgUser.username.toLowerCase() : "";
+if (tg) tg.BackButton.onClick(goBack);
 
-    if (currentUsername && currentUsername === ownerUsername) {
-      isAdmin = true;
-      showAdminUI();
-    }
-  } catch(e) {
-    console.log("Admin check failed:", e.message);
+// ── Open Subject (go to chapters page) ───────────────────────────────────────
+function openSubject(sid) {
+  var subj = subjects.find(s => s._id === sid);
+  if (!subj) return;
+
+  document.getElementById('chapPageTitle').textContent = subj.name;
+  document.getElementById('chapPageSub').textContent = subj.chapters.length + ' chapters';
+
+  document.getElementById('chapHero').innerHTML = `
+    <div class="hero-icon" style="background:${subj.color}22;border:1px solid ${subj.color}44">${subj.icon}</div>
+    <div>
+      <div class="hero-name">${subj.name}</div>
+      <div class="hero-meta">${subj.chapters.length} chapters &middot; ${subj.chapters.reduce((a,c)=>a+c.lectures.length,0)} lectures</div>
+    </div>`;
+
+  var list = document.getElementById('chapterList');
+  if (!subj.chapters.length) {
+    list.innerHTML = '<div class="empty"><i class="ti ti-books"></i>No chapters yet</div>';
+  } else {
+    list.innerHTML = subj.chapters.map((c, i) => `
+      <div class="chapter-card" onclick="openChapter('${subj._id}','${c._id}')">
+        <div class="chap-num" style="background:${subj.color}">${i+1}</div>
+        <div class="chap-info">
+          <div class="chap-name">${c.name}</div>
+          <div class="chap-count">${c.lectures.length} lectures</div>
+        </div>
+        <i class="ti ti-chevron-right chap-arrow"></i>
+      </div>`).join('');
   }
+  goTo('chapters');
 }
 
-function showAdminUI() {
-  document.getElementById('adminBtn').classList.add('visible');
-  document.getElementById('navAdd').classList.add('visible');
-  document.getElementById('navManage').classList.add('visible');
+// ── Open Chapter (go to lectures page) ───────────────────────────────────────
+function openChapter(sid, cid) {
+  var subj = subjects.find(s => s._id === sid);
+  if (!subj) return;
+  var chap = subj.chapters.find(c => c._id === cid);
+  if (!chap) return;
+
+  document.getElementById('lecPageTitle').textContent = chap.name;
+  document.getElementById('lecPageSub').textContent = subj.name + ' · ' + chap.lectures.length + ' lectures';
+
+  var list = document.getElementById('lectureList');
+  if (!chap.lectures.length) {
+    list.innerHTML = '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>';
+  } else {
+    list.innerHTML = chap.lectures.map((l, i) => `
+      <div class="lecture-card" onclick="openLink('${l.link}')">
+        <div class="lec-num">${i+1}</div>
+        <div class="lec-info">
+          <div class="lec-name">${l.name}</div>
+        </div>
+        <div class="lec-play"><i class="ti ti-player-play"></i></div>
+      </div>`).join('');
+  }
+  goTo('lectures');
 }
 
-function openAdminWithAuth(tab) {
-  if (!isAdmin) return;
-  openAdmin(tab || 'add-subject');
+function openLink(url) {
+  if (tg) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
 }
 
-async function apiFetch(url, method, body) {
-  var opts = {
-    method: method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-tg-init-data': tg ? tg.initData : ''
-    }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  var r = await fetch(url, opts);
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-
+// ── Load Data ─────────────────────────────────────────────────────────────────
 async function loadSubjects() {
   try {
     subjects = await (await fetch('/api/subjects')).json();
     renderStats();
     renderSubjects(subjects);
-  } catch (e) {
-    document.getElementById('subjectList').innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i><p>Load nahi ho saka</p></div>';
+  } catch(e) {
+    document.getElementById('subjectList').innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i>Load failed. Refresh karo.</div>';
   }
 }
 
@@ -310,83 +356,61 @@ function renderStats() {
 function renderSubjects(list) {
   var el = document.getElementById('subjectList');
   if (!list || !list.length) {
-    el.innerHTML = '<div class="empty"><i class="ti ti-books"></i><p>Koi subject nahi hai abhi</p></div>';
+    el.innerHTML = '<div class="empty"><i class="ti ti-books"></i>Koi subject nahi hai</div>';
     return;
   }
   el.innerHTML = list.map(s => `
-    <div class="subject-card" id="subj-${s._id}">
-      <div class="subject-header" onclick="toggleSubj('${s._id}')">
-        <div class="subj-icon" style="background:${s.color}22;border:1px solid ${s.color}44">${s.icon}</div>
-        <div class="subj-info">
-          <div class="subj-name">${s.name}</div>
-          <div class="subj-meta">${s.chapters.length} chapters &middot; ${s.chapters.reduce((a,c)=>a+c.lectures.length,0)} lectures</div>
-        </div>
-        <span class="subj-badge">${s.chapters.reduce((a,c)=>a+c.lectures.length,0)}</span>
-        <i class="ti ti-chevron-down subj-arrow"></i>
+    <div class="subject-card" onclick="openSubject('${s._id}')">
+      <div class="subj-icon" style="background:${s.color}22;border:1px solid ${s.color}44">${s.icon}</div>
+      <div class="subj-info">
+        <div class="subj-name">${s.name}</div>
+        <div class="subj-meta">${s.chapters.length} chapters &middot; ${s.chapters.reduce((a,c)=>a+c.lectures.length,0)} lectures</div>
       </div>
-      <div class="chapters">
-        ${!s.chapters.length ? '<div style="padding:12px 16px;font-size:12px;color:var(--text3)">No chapters yet</div>' :
-          s.chapters.map((c,ci) => `
-            <div class="chapter" id="chap-${c._id}">
-              <div class="chapter-header" onclick="toggleChap('${c._id}')">
-                <div class="chap-dot" style="background:${s.color}"></div>
-                <span class="chap-name">${c.name}</span>
-                <span class="chap-count">${c.lectures.length}</span>
-                <i class="ti ti-chevron-down chap-arrow"></i>
-              </div>
-              <div class="lectures">
-                ${!c.lectures.length ? '<div style="padding:10px 32px;font-size:12px;color:var(--text3)">No lectures yet</div>' :
-                  c.lectures.map((l,li) => `
-                    <div class="lecture-item" onclick="openLink('${l.link}')">
-                      <div class="lec-num">${li+1}</div>
-                      <span class="lec-name">${l.name}</span>
-                      <div class="lec-play"><i class="ti ti-player-play"></i></div>
-                    </div>`).join('')}
-              </div>
-            </div>`).join('')}
-      </div>
+      <i class="ti ti-chevron-right subj-arrow"></i>
     </div>`).join('');
 }
 
-// Link Telegram ke andar hi khule
-function openLink(url) {
-  if (tg) {
-    tg.openTelegramLink(url);
-  } else {
-    window.open(url, '_blank');
-  }
-}
-
-function toggleSubj(id) { document.getElementById('subj-'+id).classList.toggle('open'); }
-function toggleChap(id) { document.getElementById('chap-'+id).classList.toggle('open'); }
-
+// ── Search ────────────────────────────────────────────────────────────────────
 function handleSearch(q) {
   q = q.toLowerCase().trim();
   if (!q) { renderSubjects(subjects); return; }
-  var filtered = subjects.map(s => {
-    var ms = s.name.toLowerCase().includes(q);
-    var fc = s.chapters.map(c => {
-      var mc = c.name.toLowerCase().includes(q);
-      var fl = c.lectures.filter(l => l.name.toLowerCase().includes(q));
-      if (mc) return c;
-      if (fl.length) return {...c, lectures: fl};
-      return null;
-    }).filter(Boolean);
-    if (ms) return s;
-    if (fc.length) return {...s, chapters: fc};
-    return null;
-  }).filter(Boolean);
-  renderSubjects(filtered);
-  setTimeout(() => {
-    filtered.forEach(s => {
-      var el = document.getElementById('subj-'+s._id);
-      if (el) el.classList.add('open');
-      s.chapters.forEach(c => { var cel = document.getElementById('chap-'+c._id); if (cel) cel.classList.add('open'); });
-    });
-  }, 10);
+  renderSubjects(subjects.filter(s => s.name.toLowerCase().includes(q)));
 }
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Admin Auth ────────────────────────────────────────────────────────────────
+async function checkAdminAccess() {
+  try {
+    var config = await (await fetch('/api/config')).json();
+    var ownerUsername = config.ownerUsername.toLowerCase();
+    if (!ownerUsername) return;
+    var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    var currentUsername = tgUser ? (tgUser.username || '').toLowerCase() : '';
+    if (currentUsername && currentUsername === ownerUsername) {
+      isAdmin = true;
+      document.getElementById('adminBtn').classList.add('visible');
+    }
+  } catch(e) {}
+}
+
+async function apiFetch(url, method, body) {
+  var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json', 'x-tg-init-data': tg ? tg.initData : '' } };
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(url, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Admin Modal ───────────────────────────────────────────────────────────────
 function openAdmin(tab) {
+  if (!isAdmin) return;
   document.getElementById('adminModal').classList.add('show');
   populateSelects();
   switchTab(tab || 'add-subject');
@@ -416,10 +440,10 @@ function updateLecChapters() {
   document.getElementById('lChapter').innerHTML = opts || '<option>Pehle chapter add karo</option>';
 }
 
-function setLoading(id, loading) {
+function setLoading(id, loading, label) {
   var btn = document.getElementById(id);
   btn.disabled = loading;
-  if (loading) btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Adding...';
+  btn.innerHTML = loading ? '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Adding...' : label;
 }
 
 async function addSubject() {
@@ -434,8 +458,7 @@ async function addSubject() {
     document.getElementById('sName').value = '';
     toast('Subject add ho gaya!', 'success');
   } catch(e) { toast('Error: '+e.message, 'error'); }
-  setLoading('btnAddSubject', false);
-  document.getElementById('btnAddSubject').innerHTML = '<i class="ti ti-plus"></i> Add Subject';
+  setLoading('btnAddSubject', false, '<i class="ti ti-plus"></i> Add Subject');
 }
 
 async function addChapter() {
@@ -449,8 +472,7 @@ async function addChapter() {
     document.getElementById('cName').value = '';
     toast('Chapter add ho gaya!', 'success');
   } catch(e) { toast('Error: '+e.message, 'error'); }
-  setLoading('btnAddChapter', false);
-  document.getElementById('btnAddChapter').innerHTML = '<i class="ti ti-plus"></i> Add Chapter';
+  setLoading('btnAddChapter', false, '<i class="ti ti-plus"></i> Add Chapter');
 }
 
 async function addLecture() {
@@ -467,8 +489,7 @@ async function addLecture() {
     document.getElementById('lLink').value = '';
     toast('Lecture add ho gaya!', 'success');
   } catch(e) { toast('Error: '+e.message, 'error'); }
-  setLoading('btnAddLecture', false);
-  document.getElementById('btnAddLecture').innerHTML = '<i class="ti ti-plus"></i> Add Lecture';
+  setLoading('btnAddLecture', false, '<i class="ti ti-plus"></i> Add Lecture');
 }
 
 async function deleteSubject(id) {
@@ -492,7 +513,7 @@ function renderManage() {
   subjects.forEach(s => {
     html += `<div class="manage-item"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${s.chapters.length} chapters</div></div><button class="del-btn" onclick="deleteSubject('${s._id}')"><i class="ti ti-trash"></i></button></div>`;
     s.chapters.forEach(c => {
-      html += `<div class="manage-item" style="padding-left:28px"><span class="manage-item-icon" style="font-size:14px">📂</span><div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-sub">${s.name} &middot; ${c.lectures.length} lectures</div></div><button class="del-btn" onclick="deleteChapter('${s._id}','${c._id}')"><i class="ti ti-trash"></i></button></div>`;
+      html += `<div class="manage-item" style="padding-left:28px"><span class="manage-item-icon" style="font-size:14px">📂</span><div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-sub">${s.name} · ${c.lectures.length} lec</div></div><button class="del-btn" onclick="deleteChapter('${s._id}','${c._id}')"><i class="ti ti-trash"></i></button></div>`;
       c.lectures.forEach(l => {
         html += `<div class="manage-item" style="padding-left:44px"><span class="manage-item-icon" style="font-size:13px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name}</div><div class="manage-item-sub">${c.name}</div></div><button class="del-btn" onclick="deleteLecture('${s._id}','${c._id}','${l._id}')"><i class="ti ti-trash"></i></button></div>`;
       });
