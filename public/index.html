@@ -1,1 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EduBot — Video Lectures</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--surface3:#1e2d45;
+  --accent:#4f8ef7;--accent2:#7c5cbf;
+  --text:#e8eaf6;--text2:#8892a4;--text3:#4a5568;
+  --green:#22c55e;--red:#ef4444;--border:#1e2d45;
+  --radius:12px;--radius-sm:8px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;padding-bottom:80px}
 
+/* Header */
+.header{background:#0d1224;padding:18px 16px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-name{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+.logo-tag{font-size:11px;color:var(--text2);margin-top:1px}
+.admin-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:7px 13px;border-radius:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.2s}
+.admin-btn:hover{border-color:var(--accent);color:var(--accent)}
+.search-wrap{position:relative}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px 10px 38px;border-radius:var(--radius-sm);font-size:14px;outline:none;transition:border-color 0.2s}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+
+/* Stats */
+.stats{display:flex;padding:14px 16px;gap:0;background:var(--surface);border-bottom:1px solid var(--border)}
+.stat{flex:1;text-align:center;padding:0 8px}
+.stat+.stat{border-left:1px solid var(--border)}
+.stat-num{font-size:22px;font-weight:700;color:var(--accent);line-height:1}
+.stat-label{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* Section */
+.section-label{padding:16px 16px 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
+
+/* Subjects */
+.subjects{padding:0 16px;display:flex;flex-direction:column;gap:10px}
+.subject-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color 0.2s}
+.subject-card.open{border-color:var(--accent)}
+.subject-header{display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer;user-select:none}
+.subject-header:hover{background:var(--surface2)}
+.subj-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.subj-info{flex:1;min-width:0}
+.subj-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subj-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.subj-badge{background:var(--surface3);color:var(--text2);padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600;flex-shrink:0}
+.subj-arrow{color:var(--text3);font-size:16px;transition:transform 0.25s;flex-shrink:0}
+.subject-card.open .subj-arrow{transform:rotate(180deg);color:var(--accent)}
+
+/* Chapters */
+.chapters{display:none;border-top:1px solid var(--border);animation:fadeIn 0.2s ease}
+.subject-card.open .chapters{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.chapter{border-bottom:1px solid var(--border)}
+.chapter:last-child{border-bottom:none}
+.chapter-header{display:flex;align-items:center;padding:11px 16px;gap:10px;cursor:pointer;user-select:none}
+.chapter-header:hover{background:var(--surface2)}
+.chap-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chap-name{flex:1;font-size:13px;font-weight:500}
+.chap-count{font-size:11px;color:var(--text2);background:var(--surface3);padding:2px 7px;border-radius:8px}
+.chap-arrow{color:var(--text3);font-size:13px;transition:transform 0.2s;flex-shrink:0}
+.chapter.open .chap-arrow{transform:rotate(180deg);color:var(--accent)}
+
+/* Lectures */
+.lectures{display:none;background:var(--surface2)}
+.chapter.open .lectures{display:block}
+.lecture-item{display:flex;align-items:center;padding:10px 16px 10px 32px;gap:10px;cursor:pointer;border-bottom:1px solid var(--border);text-decoration:none;transition:background 0.15s}
+.lecture-item:last-child{border-bottom:none}
+.lecture-item:hover{background:var(--surface3)}
+.lec-num{width:26px;height:26px;border-radius:7px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);flex-shrink:0;transition:all 0.15s}
+.lecture-item:hover .lec-num{background:var(--accent);color:#fff}
+.lec-name{flex:1;font-size:13px;color:var(--text);line-height:1.3}
+.lec-play{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lec-play i{font-size:12px;color:#fff;margin-left:2px}
+
+/* Loading / Empty */
+.loading{text-align:center;padding:50px 20px;color:var(--text2)}
+.loading i{font-size:32px;color:var(--accent);display:block;margin-bottom:10px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:50px 20px;color:var(--text2);font-size:14px}
+.empty i{font-size:44px;color:var(--text3);display:block;margin-bottom:12px}
+.empty p{margin-bottom:6px}
+.empty small{font-size:12px;color:var(--text3)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal-close{position:absolute;right:16px;top:16px;background:var(--surface2);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.modal-close:hover{color:var(--text)}
+.modal{position:relative}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.modal-title i{color:var(--accent);font-size:18px}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;padding-bottom:2px}
+.tab-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;color:var(--text2);margin-bottom:6px;display:block;font-weight:500}
+.form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:var(--radius-sm);font-size:14px;outline:none;transition:border-color 0.2s}
+.form-input:focus,.form-select:focus{border-color:var(--accent)}
+.form-select{appearance:none;cursor:pointer}
+.btn-add{width:100%;background:var(--accent);color:#fff;border:none;padding:13px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-add:hover{opacity:0.9}
+.btn-add:disabled{opacity:0.5;cursor:not-allowed}
+
+/* Manage list */
+.manage-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:7px}
+.manage-item-icon{font-size:18px;flex-shrink:0}
+.manage-item-info{flex:1;min-width:0}
+.manage-item-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.manage-item-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;font-size:17px;transition:color 0.15s}
+.del-btn:hover{color:var(--red)}
+
+/* Password modal */
+.pass-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center}
+.pass-modal.show{display:flex}
+.pass-box{background:var(--surface);border-radius:var(--radius);padding:24px;width:90%;max-width:320px;text-align:center}
+.pass-box h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.pass-box p{font-size:13px;color:var(--text2);margin-bottom:16px}
+.pass-box input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px;border-radius:var(--radius-sm);font-size:14px;outline:none;text-align:center;letter-spacing:3px;margin-bottom:12px}
+.pass-box input:focus{border-color:var(--accent)}
+.pass-error{font-size:12px;color:var(--red);margin-top:-8px;margin-bottom:10px;display:none}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 env(safe-area-inset-bottom,12px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;padding:4px 0;transition:color 0.2s}
+.nav-item.active,.nav-item:hover{color:var(--accent)}
+.nav-item i{font-size:21px}
+
+/* Toast */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">📚</div>
+        <div>
+          <div class="logo-name">EduBot</div>
+          <div class="logo-tag">Video Lectures</div>
+        </div>
+      </div>
+      <button class="admin-btn" onclick="openAdminWithAuth()">
+        <i class="ti ti-settings" style="font-size:14px"></i> Admin
+      </button>
+    </div>
+    <div class="search-wrap">
+      <i class="ti ti-search search-icon"></i>
+      <input class="search-input" id="searchInput" placeholder="Search subjects, chapters, lectures..." oninput="handleSearch(this.value)">
+    </div>
+  </div>
+
+  <div class="stats" id="statsBar">
+    <div class="stat"><div class="stat-num">—</div><div class="stat-label">Subjects</div></div>
+    <div class="stat"><div class="stat-num">—</div><div class="stat-label">Chapters</div></div>
+    <div class="stat"><div class="stat-num">—</div><div class="stat-label">Lectures</div></div>
+  </div>
+
+  <div class="section-label">All Subjects</div>
+  <div class="subjects" id="subjectList">
+    <div class="loading"><i class="ti ti-loader-2"></i>Loading...</div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="scrollToTop()"><i class="ti ti-home"></i>Home</div>
+  <div class="nav-item" onclick="openAdminWithAuth('add-lecture')"><i class="ti ti-upload"></i>Add</div>
+  <div class="nav-item" onclick="openAdminWithAuth('manage')"><i class="ti ti-list"></i>Manage</div>
+</div>
+
+<!-- Password Modal -->
+<div class="pass-modal" id="passModal">
+  <div class="pass-box">
+    <h3>🔐 Admin Access</h3>
+    <p>Password enter karo</p>
+    <input type="password" id="passInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkPass()">
+    <div class="pass-error" id="passError">Wrong password!</div>
+    <button class="btn-add" onclick="checkPass()"><i class="ti ti-lock-open"></i> Enter</button>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal-overlay" id="adminModal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeAdmin()"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-settings"></i>Admin Panel</div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('add-subject')">+ Subject</button>
+      <button class="tab-btn" onclick="switchTab('add-chapter')">+ Chapter</button>
+      <button class="tab-btn" onclick="switchTab('add-lecture')">+ Lecture</button>
+      <button class="tab-btn" onclick="switchTab('manage')">Manage</button>
+    </div>
+
+    <!-- Add Subject -->
+    <div class="tab-content active" id="tab-add-subject">
+      <div class="form-group">
+        <label class="form-label">Subject Name</label>
+        <input class="form-input" id="sName" placeholder="e.g. Mathematics">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Icon (emoji)</label>
+        <input class="form-input" id="sIcon" placeholder="📐" maxlength="4" style="font-size:20px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <select class="form-select" id="sColor">
+          <option value="#4f8ef7">🔵 Blue</option>
+          <option value="#7c5cbf">🟣 Purple</option>
+          <option value="#22c55e">🟢 Green</option>
+          <option value="#f5a623">🟠 Orange</option>
+          <option value="#ef4444">🔴 Red</option>
+          <option value="#06b6d4">🩵 Cyan</option>
+          <option value="#ec4899">🩷 Pink</option>
+        </select>
+      </div>
+      <button class="btn-add" id="btnAddSubject" onclick="addSubject()">
+        <i class="ti ti-plus"></i> Add Subject
+      </button>
+    </div>
+
+    <!-- Add Chapter -->
+    <div class="tab-content" id="tab-add-chapter">
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select class="form-select" id="cSubject"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chapter Name</label>
+        <input class="form-input" id="cName" placeholder="e.g. Chapter 1 - Algebra">
+      </div>
+      <button class="btn-add" id="btnAddChapter" onclick="addChapter()">
+        <i class="ti ti-plus"></i> Add Chapter
+      </button>
+    </div>
+
+    <!-- Add Lecture -->
+    <div class="tab-content" id="tab-add-lecture">
+      <div class="form-group">
+        <label class="form-label">Subject</label>
+        <select class="form-select" id="lSubject" onchange="updateLecChapters()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chapter</label>
+        <select class="form-select" id="lChapter"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lecture Name</label>
+        <input class="form-input" id="lName" placeholder="e.g. Introduction to Limits">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bot Link</label>
+        <input class="form-input" id="lLink" placeholder="https://t.me/YourBot?start=CODE">
+      </div>
+      <button class="btn-add" id="btnAddLecture" onclick="addLecture()">
+        <i class="ti ti-plus"></i> Add Lecture
+      </button>
+    </div>
+
+    <!-- Manage -->
+    <div class="tab-content" id="tab-manage">
+      <div id="manageList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var ADMIN_PASS = '';
+var subjects = [];
+var pendingTab = null;
+
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function scrollToTop() { window.scrollTo({top:0,behavior:'smooth'}); }
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+function openAdminWithAuth(tab) {
+  pendingTab = tab || 'add-subject';
+  if (ADMIN_PASS) { openAdmin(pendingTab); return; }
+  document.getElementById('passInput').value = '';
+  document.getElementById('passError').style.display = 'none';
+  document.getElementById('passModal').classList.add('show');
+  setTimeout(() => document.getElementById('passInput').focus(), 100);
+}
+
+function checkPass() {
+  var p = document.getElementById('passInput').value;
+  if (!p) return;
+  ADMIN_PASS = p;
+  // Verify by trying to fetch
+  fetch('/api/subjects', { headers: { 'x-admin-password': p } })
+    .then(r => {
+      if (r.status === 401) {
+        ADMIN_PASS = '';
+        document.getElementById('passError').style.display = 'block';
+        document.getElementById('passInput').value = '';
+      } else {
+        document.getElementById('passModal').classList.remove('show');
+        openAdmin(pendingTab);
+      }
+    });
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function apiFetch(url, method, body) {
+  var opts = { method: method || 'GET', headers: { 'Content-Type': 'application/json', 'x-admin-password': ADMIN_PASS } };
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(url, opts);
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function loadSubjects() {
+  try {
+    subjects = await (await fetch('/api/subjects')).json();
+    renderStats();
+    renderSubjects(subjects);
+  } catch (e) {
+    document.getElementById('subjectList').innerHTML = '<div class="empty"><i class="ti ti-wifi-off"></i><p>Load nahi ho saka</p><small>Page refresh karo</small></div>';
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderStats() {
+  var chaps = subjects.reduce((a,s)=>a+s.chapters.length,0);
+  var lecs = subjects.reduce((a,s)=>s.chapters.reduce((b,c)=>b+c.lectures.length,a),0);
+  document.getElementById('statsBar').innerHTML =
+    `<div class="stat"><div class="stat-num">${subjects.length}</div><div class="stat-label">Subjects</div></div>
+     <div class="stat"><div class="stat-num">${chaps}</div><div class="stat-label">Chapters</div></div>
+     <div class="stat"><div class="stat-num">${lecs}</div><div class="stat-label">Lectures</div></div>`;
+}
+
+function renderSubjects(list) {
+  var el = document.getElementById('subjectList');
+  if (!list || !list.length) {
+    el.innerHTML = '<div class="empty"><i class="ti ti-books"></i><p>Koi subject nahi hai abhi</p><small>Admin panel se add karo</small></div>';
+    return;
+  }
+  el.innerHTML = list.map(s => `
+    <div class="subject-card" id="subj-${s._id}">
+      <div class="subject-header" onclick="toggleSubj('${s._id}')">
+        <div class="subj-icon" style="background:${s.color}22;border:1px solid ${s.color}44">${s.icon}</div>
+        <div class="subj-info">
+          <div class="subj-name">${s.name}</div>
+          <div class="subj-meta">${s.chapters.length} chapters &middot; ${s.chapters.reduce((a,c)=>a+c.lectures.length,0)} lectures</div>
+        </div>
+        <span class="subj-badge">${s.chapters.reduce((a,c)=>a+c.lectures.length,0)}</span>
+        <i class="ti ti-chevron-down subj-arrow"></i>
+      </div>
+      <div class="chapters">
+        ${!s.chapters.length ? '<div style="padding:12px 16px;font-size:12px;color:var(--text3)">No chapters yet</div>' :
+          s.chapters.map((c,ci) => `
+            <div class="chapter" id="chap-${c._id}">
+              <div class="chapter-header" onclick="toggleChap('${c._id}')">
+                <div class="chap-dot" style="background:${s.color}"></div>
+                <span class="chap-name">${c.name}</span>
+                <span class="chap-count">${c.lectures.length}</span>
+                <i class="ti ti-chevron-down chap-arrow"></i>
+              </div>
+              <div class="lectures">
+                ${!c.lectures.length ? '<div style="padding:10px 32px;font-size:12px;color:var(--text3)">No lectures yet</div>' :
+                  c.lectures.map((l,li) => `
+                    <a class="lecture-item" href="${l.link}" target="_blank">
+                      <div class="lec-num">${li+1}</div>
+                      <span class="lec-name">${l.name}</span>
+                      <div class="lec-play"><i class="ti ti-player-play"></i></div>
+                    </a>`).join('')}
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleSubj(id) { document.getElementById('subj-'+id).classList.toggle('open'); }
+function toggleChap(id) { document.getElementById('chap-'+id).classList.toggle('open'); }
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+function handleSearch(q) {
+  q = q.toLowerCase().trim();
+  if (!q) { renderSubjects(subjects); return; }
+  var filtered = subjects.map(s => {
+    var ms = s.name.toLowerCase().includes(q);
+    var fc = s.chapters.map(c => {
+      var mc = c.name.toLowerCase().includes(q);
+      var fl = c.lectures.filter(l => l.name.toLowerCase().includes(q));
+      if (mc) return c;
+      if (fl.length) return {...c, lectures: fl};
+      return null;
+    }).filter(Boolean);
+    if (ms) return s;
+    if (fc.length) return {...s, chapters: fc};
+    return null;
+  }).filter(Boolean);
+  renderSubjects(filtered);
+  setTimeout(() => {
+    filtered.forEach(s => {
+      var el = document.getElementById('subj-'+s._id);
+      if (el) el.classList.add('open');
+      s.chapters.forEach(c => {
+        var cel = document.getElementById('chap-'+c._id);
+        if (cel) cel.classList.add('open');
+      });
+    });
+  }, 10);
+}
+
+// ─── Admin Modal ──────────────────────────────────────────────────────────────
+function openAdmin(tab) {
+  document.getElementById('adminModal').classList.add('show');
+  populateSelects();
+  switchTab(tab || 'add-subject');
+}
+function closeAdmin() { document.getElementById('adminModal').classList.remove('show'); }
+function closeModalOutside(e) { if (e.target.id === 'adminModal') closeAdmin(); }
+
+function switchTab(name) {
+  var tabs = ['add-subject','add-chapter','add-lecture','manage'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===name));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name === 'manage') renderManage();
+}
+
+function populateSelects() {
+  var opts = subjects.map(s => `<option value="${s._id}">${s.icon} ${s.name}</option>`).join('');
+  document.getElementById('cSubject').innerHTML = opts || '<option>Pehle subject add karo</option>';
+  document.getElementById('lSubject').innerHTML = opts || '<option>Pehle subject add karo</option>';
+  updateLecChapters();
+}
+
+function updateLecChapters() {
+  var sid = document.getElementById('lSubject').value;
+  var subj = subjects.find(s => s._id === sid);
+  var opts = subj ? subj.chapters.map(c => `<option value="${c._id}">${c.name}</option>`).join('') : '';
+  document.getElementById('lChapter').innerHTML = opts || '<option>Pehle chapter add karo</option>';
+}
+
+// ─── Add / Delete ─────────────────────────────────────────────────────────────
+async function addSubject() {
+  var name = document.getElementById('sName').value.trim();
+  var icon = document.getElementById('sIcon').value.trim() || '📚';
+  var color = document.getElementById('sColor').value;
+  if (!name) return toast('Subject name daalo!', 'error');
+  setLoading('btnAddSubject', true);
+  try {
+    await apiFetch('/api/subjects', 'POST', { name, icon, color });
+    await loadSubjects(); populateSelects();
+    document.getElementById('sName').value = '';
+    toast('Subject add ho gaya!', 'success');
+  } catch(e) { toast('Error: '+e.message, 'error'); }
+  setLoading('btnAddSubject', false);
+}
+
+async function addChapter() {
+  var sid = document.getElementById('cSubject').value;
+  var name = document.getElementById('cName').value.trim();
+  if (!sid || !name) return toast('Sab fields bharein!', 'error');
+  setLoading('btnAddChapter', true);
+  try {
+    await apiFetch(`/api/subjects/${sid}/chapters`, 'POST', { name });
+    await loadSubjects(); populateSelects();
+    document.getElementById('cName').value = '';
+    toast('Chapter add ho gaya!', 'success');
+  } catch(e) { toast('Error: '+e.message, 'error'); }
+  setLoading('btnAddChapter', false);
+}
+
+async function addLecture() {
+  var sid = document.getElementById('lSubject').value;
+  var cid = document.getElementById('lChapter').value;
+  var name = document.getElementById('lName').value.trim();
+  var link = document.getElementById('lLink').value.trim();
+  if (!sid || !cid || !name || !link) return toast('Sab fields bharein!', 'error');
+  setLoading('btnAddLecture', true);
+  try {
+    await apiFetch(`/api/subjects/${sid}/chapters/${cid}/lectures`, 'POST', { name, link });
+    await loadSubjects(); populateSelects();
+    document.getElementById('lName').value = '';
+    document.getElementById('lLink').value = '';
+    toast('Lecture add ho gaya!', 'success');
+  } catch(e) { toast('Error: '+e.message, 'error'); }
+  setLoading('btnAddLecture', false);
+}
+
+async function deleteSubject(id) {
+  if (!confirm('Subject aur uske saare chapters/lectures delete ho jaayenge?')) return;
+  try {
+    await apiFetch(`/api/subjects/${id}`, 'DELETE');
+    await loadSubjects(); renderManage();
+    toast('Subject delete ho gaya', 'success');
+  } catch(e) { toast('Error', 'error'); }
+}
+
+async function deleteChapter(sid, cid) {
+  if (!confirm('Chapter aur uski saari lectures delete ho jaayengi?')) return;
+  try {
+    await apiFetch(`/api/subjects/${sid}/chapters/${cid}`, 'DELETE');
+    await loadSubjects(); renderManage();
+    toast('Chapter delete ho gaya', 'success');
+  } catch(e) { toast('Error', 'error'); }
+}
+
+async function deleteLecture(sid, cid, lid) {
+  if (!confirm('Lecture delete karna chahte ho?')) return;
+  try {
+    await apiFetch(`/api/subjects/${sid}/chapters/${cid}/lectures/${lid}`, 'DELETE');
+    await loadSubjects(); renderManage();
+    toast('Lecture delete ho gayi', 'success');
+  } catch(e) { toast('Error', 'error'); }
+}
+
+function renderManage() {
+  var html = '';
+  subjects.forEach(s => {
+    html += `<div class="manage-item">
+      <span class="manage-item-icon">${s.icon}</span>
+      <div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${s.chapters.length} chapters</div></div>
+      <button class="del-btn" onclick="deleteSubject('${s._id}')"><i class="ti ti-trash"></i></button>
+    </div>`;
+    s.chapters.forEach(c => {
+      html += `<div class="manage-item" style="padding-left:28px">
+        <span class="manage-item-icon" style="font-size:14px">📂</span>
+        <div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-sub">${s.name} &middot; ${c.lectures.length} lectures</div></div>
+        <button class="del-btn" onclick="deleteChapter('${s._id}','${c._id}')"><i class="ti ti-trash"></i></button>
+      </div>`;
+      c.lectures.forEach(l => {
+        html += `<div class="manage-item" style="padding-left:44px">
+          <span class="manage-item-icon" style="font-size:13px">▶</span>
+          <div class="manage-item-info"><div class="manage-item-name">${l.name}</div><div class="manage-item-sub">${c.name}</div></div>
+          <button class="del-btn" onclick="deleteLecture('${s._id}','${c._id}','${l._id}')"><i class="ti ti-trash"></i></button>
+        </div>`;
+      });
+    });
+  });
+  document.getElementById('manageList').innerHTML = html || '<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px">Kuch nahi hai abhi</div>';
+}
+
+function setLoading(id, loading) {
+  var btn = document.getElementById(id);
+  btn.disabled = loading;
+  if (loading) btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite"></i> Adding...';
+}
+
+loadSubjects();
+</script>
+</body>
+</html>
