@@ -2,10 +2,11 @@ const TelegramBot = require("node-telegram-bot-api");
 const mongoose = require("mongoose");
 const express = require("express");
 const path = require("path");
+const https = require("https");
 
 const TOKEN = process.env.BOT_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
-const WEB_URL = process.env.WEB_URL; // Render URL e.g. https://edu-app.onrender.com
+const WEB_URL = process.env.WEB_URL;
 const PORT = process.env.PORT || 3000;
 
 if (!TOKEN || !MONGO_URI || !WEB_URL) {
@@ -37,10 +38,22 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
+// ─── Clear old polling (https module se) ─────────────────────────────────────
+function clearOldPolling() {
+  return new Promise((resolve) => {
+    const url = `https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1&timeout=0`;
+    https.get(url, (res) => {
+      res.resume();
+      res.on("end", resolve);
+    }).on("error", resolve); // error aaye tab bhi continue karo
+  });
+}
+
 // ─── Bot ──────────────────────────────────────────────────────────────────────
 async function startBot() {
   console.log("Purani polling clear kar raha hoon...");
-  await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1&timeout=0`);
+  await clearOldPolling();
+  console.log("Clear ho gayi, bot start kar raha hoon...");
 
   const bot = new TelegramBot(TOKEN, { polling: true });
   const me = await bot.getMe();
@@ -48,8 +61,7 @@ async function startBot() {
 
   bot.onText(/\/start/, (msg) => {
     bot.sendMessage(msg.chat.id,
-      `👋 Hello ${msg.from.first_name}!\n\n` +
-      `Neeche button dabao aur saare lectures dekho! 📚`,
+      `👋 Hello ${msg.from.first_name}!\n\nNeeche button dabao aur saare lectures dekho! 📚`,
       {
         reply_markup: {
           inline_keyboard: [[
