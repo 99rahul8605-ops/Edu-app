@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
+const mongoose = require("mongoose");
 const Batch = require("../models/Course");
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -154,3 +155,31 @@ router.delete("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures/:li
 });
 
 module.exports = router;
+
+// ── Access Control ────────────────────────────────────────────────────────────
+const accessSchema = new mongoose.Schema({
+  userId: { type: String, required: true, unique: true },
+  expiresAt: { type: Date, required: true },
+});
+accessSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const Access = mongoose.model('Access', accessSchema);
+
+router.get('/access/:userId', async (req, res) => {
+  try {
+    const record = await Access.findOne({ userId: req.params.userId });
+    if (!record || record.expiresAt < new Date()) return res.json({ hasAccess: false, expiresAt: null });
+    res.json({ hasAccess: true, expiresAt: record.expiresAt });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/access/:userId', async (req, res) => {
+  try {
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await Access.findOneAndUpdate(
+      { userId: req.params.userId },
+      { userId: req.params.userId, expiresAt },
+      { upsert: true, new: true }
+    );
+    res.json({ hasAccess: true, expiresAt });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
