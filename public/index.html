@@ -17,7 +17,8 @@
   --radius:12px;--radius-sm:8px;
 }
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none;opacity:0;transition:opacity 0.18s ease}
+body.ready{opacity:1}
 
 .page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .page.active{transform:translateX(0);z-index:11}
@@ -403,6 +404,34 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
+// ── Resume Fix (link open ke baad wapas aane pe blink nahi) ─────────────────
+var _linkJustOpened = false;
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden' && _linkJustOpened) {
+    // App minimize hua link ki wajah se — body hide karo
+    document.body.style.opacity = '0';
+  }
+  if (document.visibilityState === 'visible') {
+    _linkJustOpened = false;
+    // Thoda wait karo taaki page settle ho, phir smooth fade in
+    setTimeout(function() {
+      document.body.style.transition = 'opacity 0.22s ease';
+      document.body.style.opacity = '1';
+    }, 80);
+  }
+});
+
+if (tg) {
+  tg.onEvent('activated', function() {
+    _linkJustOpened = false;
+    setTimeout(function() {
+      document.body.style.transition = 'opacity 0.22s ease';
+      document.body.style.opacity = '1';
+    }, 80);
+  });
+}
+
 var batches = [];
 var isAdmin = false;
 var pageStack = ['home'];
@@ -600,8 +629,13 @@ function openUnit(bid, sid, cid, uid) {
 
 function openLink(url, type) {
   if (tg) {
-    // openLink use karo — app band nahi hoga, external browser mein khulega
-    tg.openLink(url, { try_instant_view: false });
+    _linkJustOpened = true;
+    // Body hide karo taaki minimize pe blink na dikhe
+    document.body.style.transition = 'opacity 0.15s ease';
+    document.body.style.opacity = '0';
+    setTimeout(function() {
+      tg.openLink(url, { try_instant_view: false });
+    }, 120); // fade out ke baad open karo
   } else {
     var a = document.createElement('a');
     a.href = url;
@@ -624,11 +658,28 @@ function showSendingPopup(type) {
 
 // ── Load ──────────────────────────────────────────────────────────────────────
 async function load() {
+  // Cache se turant dikhao — blink nahi hoga
   try {
-    batches = await (await fetch('/api/batches')).json();
-    renderBatches(batches);
+    var cached = localStorage.getItem('edubot_batches');
+    if (cached) {
+      batches = JSON.parse(cached);
+      renderBatches(batches);
+    }
+  } catch(e) {}
+
+  // Background mein fresh fetch karo
+  try {
+    var fresh = await (await fetch('/api/batches')).json();
+    // Sirf update karo agar data alag hai
+    if (JSON.stringify(fresh) !== JSON.stringify(batches)) {
+      batches = fresh;
+      renderBatches(batches);
+    }
+    localStorage.setItem('edubot_batches', JSON.stringify(fresh));
   } catch(e) {
-    document.getElementById('batchGrid').innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-wifi-off"></i>Load failed</div>';
+    if (!batches.length) {
+      document.getElementById('batchGrid').innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-wifi-off"></i>Load failed</div>';
+    }
   }
 }
 
@@ -873,16 +924,28 @@ function hasAccess() {
 
 async function loadAccess() {
   if (isAdmin) return;
+
+  // Cache se turant load karo — timer blink nahi hoga
+  try {
+    var cached = localStorage.getItem('edubot_access_expires');
+    if (cached && new Date(cached) > new Date()) {
+      accessExpiresAt = cached;
+    }
+  } catch(e) {}
+
+  // Background mein server se verify karo
   try {
     userId = getUserId();
     var r = await fetch('/api/access/' + userId);
     var data = await r.json();
     if (data.hasAccess && data.expiresAt) {
       accessExpiresAt = data.expiresAt;
+      localStorage.setItem('edubot_access_expires', data.expiresAt);
     } else {
       accessExpiresAt = null;
+      localStorage.removeItem('edubot_access_expires');
     }
-  } catch(e) { accessExpiresAt = null; }
+  } catch(e) { /* cache wala use hoga */ }
 }
 
 async function grantAccessDB() {
@@ -1129,6 +1192,8 @@ async function init() {
   // Home timer bar
   updateHomeTimer();
   if (hasAccess()) startCountdown();
+  // Sab load ho gaya — ab dikhao (blink free)
+  document.body.classList.add('ready');
 }
 init();
 
