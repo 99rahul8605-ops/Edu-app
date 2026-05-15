@@ -412,10 +412,15 @@ function openChapter(bid, sid, cid) {
     document.getElementById('unitSecLabel').textContent = 'LECTURES';
     document.getElementById('unitList').innerHTML = !c.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
       c.lectures.map((l,i) => `
-        <div class="lec-row" onclick="openLink('${l.link}')">
-          <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <div class="lec-play"><i class="ti ti-player-play"></i></div>
+        <div class="lec-row">
+          <div class="lec-row-top">
+            <div class="lec-num">${i+1}</div>
+            <div class="lec-name">${l.name}</div>
+          </div>
+          <div class="lec-btns">
+            <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
+            ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+          </div>
         </div>`).join('');
   }
   goTo('units');
@@ -432,10 +437,15 @@ function openUnit(bid, sid, cid, uid) {
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
   document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
     u.lectures.map((l,i) => `
-      <div class="lec-row" onclick="openLink('${l.link}')">
-        <div class="lec-num">${i+1}</div>
-        <div class="lec-name">${l.name}</div>
-        <div class="lec-play"><i class="ti ti-player-play"></i></div>
+      <div class="lec-row">
+        <div class="lec-row-top">
+          <div class="lec-num">${i+1}</div>
+          <div class="lec-name">${l.name}</div>
+        </div>
+        <div class="lec-btns">
+          <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
+          ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+        </div>
       </div>`).join('');
   goTo('lectures');
 }
