@@ -501,8 +501,21 @@ function openUnit(bid, sid, cid, uid) {
 }
 
 function openLink(url, type) {
-  if (tg) tg.openTelegramLink(url);
-  else window.open(url, '_blank');
+  if (tg) {
+    if (url.includes('t.me/') || url.includes('telegram.me/')) {
+      tg.openTelegramLink(url);
+    } else {
+      tg.openLink(url);
+    }
+  } else {
+    var a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
   showSendingPopup(type);
 }
 
