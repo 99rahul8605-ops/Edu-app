@@ -630,12 +630,26 @@ function openUnit(bid, sid, cid, uid) {
 function openLink(url, type) {
   if (tg) {
     _linkJustOpened = true;
-    // Body hide karo taaki minimize pe blink na dikhe
     document.body.style.transition = 'opacity 0.15s ease';
     document.body.style.opacity = '0';
+
+    // Fallback — agar 2.5s mein minimize nahi hua (redirect cancel/fail)
+    // to wapas dikhao
+    var fallbackTimer = setTimeout(function() {
+      _linkJustOpened = false;
+      document.body.style.transition = 'opacity 0.22s ease';
+      document.body.style.opacity = '1';
+    }, 2500);
+
     setTimeout(function() {
       tg.openLink(url, { try_instant_view: false });
-    }, 120); // fade out ke baad open karo
+      // Agar visibilitychange fire hua matlab minimize hua — fallback cancel karo
+      var onHide = function() {
+        clearTimeout(fallbackTimer);
+        document.removeEventListener('visibilitychange', onHide);
+      };
+      document.addEventListener('visibilitychange', onHide);
+    }, 120);
   } else {
     var a = document.createElement('a');
     a.href = url;
