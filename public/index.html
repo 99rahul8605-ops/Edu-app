@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>EduBot</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.monetag.com/sdk.js" data-zone="10970837" data-sdk="show_10970837" async></script>
+<script src='//libtl.com/sdk.js' data-zone='11011844' data-sdk='show_11011844'></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -1013,9 +1013,9 @@ function watchAd() {
   }
 
   function tryShowAd(attemptsLeft) {
-    if (typeof show_10970837 !== 'undefined') {
+    if (typeof show_11011844 !== 'undefined') {
       var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
-      show_10970837({
+      show_11011844({
         type: 'inApp',
         ymid: userId,
         inAppSettings: {
