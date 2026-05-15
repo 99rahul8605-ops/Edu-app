@@ -1014,7 +1014,8 @@ function watchAd() {
 
   function tryShowAd(attemptsLeft) {
     if (typeof show_10970837 !== 'undefined') {
-      show_10970837().then(async function() {
+      var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
+      show_10970837({ type: 'pop', ymid: userId }).then(async function() {
         await grantAccessDB();
         renderAccessCard();
         startCountdown();
