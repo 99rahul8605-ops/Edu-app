@@ -500,10 +500,12 @@ function openUnit(bid, sid, cid, uid) {
   goTo('lectures');
 }
 
-// Direct DOM update
+// Smooth DOM update - no flash
 function setHTML(id, html) {
-  var el = document.getElementById(id);
-  if (el) el.innerHTML = html;
+  requestAnimationFrame(() => {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  });
 }
 
 function openLink(url, type) {
@@ -525,63 +527,13 @@ function showSendingPopup(type) {
 }
 
 // ── Load ──────────────────────────────────────────────────────────────────────
-var loadAttempt = 0;
-
-function fetchWithTimeout(url, ms) {
-  return new Promise((resolve, reject) => {
-    var timer = setTimeout(() => reject(new Error('timeout')), ms);
-    fetch(url).then(r => { clearTimeout(timer); resolve(r); }).catch(e => { clearTimeout(timer); reject(e); });
-  });
-}
-
 async function load() {
-  loadAttempt++;
-  var grid = document.getElementById('batchGrid');
-
-  // 1st attempt — normal loading
-  if (loadAttempt === 1) {
-    grid.innerHTML = '<div class="loading" style="grid-column:1/-1"><i class="ti ti-loader-2"></i>Loading...</div>';
-  }
-
-  // 8 second ke baad cold start warning
-  var warnTimer = setTimeout(() => {
-    grid.innerHTML = `
-      <div class="empty" style="grid-column:1/-1;padding:30px 20px">
-        <i class="ti ti-cloud" style="font-size:40px;color:var(--accent);display:block;margin-bottom:12px"></i>
-        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Server start ho raha hai...</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Render free server thoda time leta hai.<br>30-60 seconds mein automatically load ho jayega.</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px">
-          <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite"></div>
-          <span style="font-size:12px;color:var(--text2)">Please wait...</span>
-        </div>
-        <button onclick="retryLoad()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer">
-          <i class="ti ti-refresh"></i> Abhi Retry Karo
-        </button>
-      </div>`;
-  }, 8000);
-
   try {
-    var r = await fetchWithTimeout('/api/batches', 65000);
-    clearTimeout(warnTimer);
-    batches = await r.json();
+    batches = await (await fetch('/api/batches')).json();
     renderBatches(batches);
   } catch(e) {
-    clearTimeout(warnTimer);
-    grid.innerHTML = `
-      <div class="empty" style="grid-column:1/-1;padding:30px 20px">
-        <i class="ti ti-wifi-off" style="font-size:40px;color:var(--red);display:block;margin-bottom:12px"></i>
-        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Connect nahi ho paya</div>
-        <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Internet check karo ya thodi der baad try karo.</div>
-        <button onclick="retryLoad()" style="background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer">
-          <i class="ti ti-refresh"></i> Retry
-        </button>
-      </div>`;
+    document.getElementById('batchGrid').innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-wifi-off"></i>Load failed</div>';
   }
-}
-
-function retryLoad() {
-  loadAttempt = 0;
-  load();
 }
 
 function renderBatches(list) {
@@ -602,7 +554,7 @@ function renderBatches(list) {
         <div class="batch-meta">${b.subjects.length} subjects</div>
       </div>
     </div>`).join('');
-  el.innerHTML = html;
+  requestAnimationFrame(() => { el.innerHTML = html; });
 }
 
 function handleSearch(q) {
