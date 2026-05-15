@@ -500,12 +500,10 @@ function openUnit(bid, sid, cid, uid) {
   goTo('lectures');
 }
 
-// Smooth DOM update - no flash
+// Direct DOM update
 function setHTML(id, html) {
-  requestAnimationFrame(() => {
-    var el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  });
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
 }
 
 function openLink(url, type) {
@@ -554,7 +552,7 @@ function renderBatches(list) {
         <div class="batch-meta">${b.subjects.length} subjects</div>
       </div>
     </div>`).join('');
-  requestAnimationFrame(() => { el.innerHTML = html; });
+  el.innerHTML = html;
 }
 
 function handleSearch(q) {
