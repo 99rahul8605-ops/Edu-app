@@ -29,7 +29,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .admin-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;display:none;align-items:center;gap:5px;flex-shrink:0}
 .admin-btn.visible{display:flex}
 
-.page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:70px}
 
 .search-wrap{padding:10px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0}
 .search-inner{position:relative}
@@ -149,8 +149,6 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .nav-tab.active{color:var(--accent)}
 .nav-tab .access-dot{width:7px;height:7px;border-radius:50%;background:var(--green);position:absolute;top:8px;right:calc(50% - 14px)}
 .nav-tab .access-dot.locked{background:var(--red)}
-/* Add bottom padding to all pages */
-.page-body{padding-bottom:70px}
 
 /* Access Page */
 .access-page-wrap{padding:16px}
