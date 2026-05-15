@@ -133,10 +133,56 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:5px;display:flex;align-items:center;font-size:16px}
 .del-btn:active{color:var(--red)}
 
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0d1224;border-top:1px solid var(--border);display:flex;z-index:50;max-width:480px;margin:0 auto}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 12px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;gap:3px;transition:color 0.2s;border:none;background:none}
+.nav-tab i{font-size:22px}
+.nav-tab.active{color:var(--accent)}
+.nav-tab .access-dot{width:7px;height:7px;border-radius:50%;background:var(--green);position:absolute;top:8px;right:calc(50% - 14px)}
+.nav-tab .access-dot.locked{background:var(--red)}
+/* Add bottom padding to all pages */
+.page-body{padding-bottom:70px}
+
+/* Access Page */
+.access-page-wrap{padding:16px}
+.access-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.access-card-header{padding:20px;text-align:center;border-bottom:1px solid var(--border)}
+.access-card-header i{font-size:48px;display:block;margin-bottom:12px}
+.access-card-header h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.access-card-header p{font-size:13px;color:var(--text2);line-height:1.5}
+.countdown-box{padding:20px;text-align:center;background:linear-gradient(135deg,#0f1a2e,#0a0e1a)}
+.countdown-time{font-size:42px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:2px}
+.countdown-label{font-size:12px;color:var(--text2);margin-top:4px}
+.countdown-bar{height:4px;background:var(--surface3);border-radius:2px;margin:12px 20px 0;overflow:hidden}
+.countdown-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 1s linear}
+.access-action{padding:16px}
+.watch-ad-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:14px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s}
+.watch-ad-btn:active{opacity:0.85}
+.watch-ad-btn:disabled{opacity:0.5;cursor:not-allowed}
+.extend-btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+.status-unlocked{color:var(--green)}
+.status-locked{color:var(--red)}
+
 .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:999;transition:transform 0.3s;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{border-color:var(--green);color:var(--green)}
 .toast.error{border-color:var(--red);color:var(--red)}
+
+/* Access Banner */
+.access-banner{margin:16px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.access-locked{background:var(--surface);padding:24px 20px;text-align:center}
+.access-locked i{font-size:40px;color:var(--text3);display:block;margin-bottom:12px}
+.access-locked h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.access-locked p{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.access-unlocked{background:linear-gradient(135deg,#1a2e1a,#1a2235);border-color:var(--green);padding:14px 16px;display:flex;align-items:center;gap:12px}
+.access-unlocked i{font-size:22px;color:var(--green);flex-shrink:0}
+.access-unlocked-info{flex:1}
+.access-unlocked-title{font-size:14px;font-weight:600;color:var(--green)}
+.access-unlocked-sub{font-size:12px;color:var(--text2);margin-top:2px}
+.watch-ad-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:13px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s}
+.watch-ad-btn:active{opacity:0.85}
+.watch-ad-btn:disabled{opacity:0.5;cursor:not-allowed}
+.locked-overlay{position:absolute;inset:0;background:rgba(10,14,26,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:5;border-radius:var(--radius)}
+.locked-overlay i{font-size:32px;color:var(--text3)}
 .sending-popup{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2235;border:1px solid var(--accent);border-radius:14px;padding:12px 20px;display:flex;align-items:center;gap:10px;z-index:999;transition:transform 0.3s cubic-bezier(.4,0,.2,1);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,0.4)}
 .sending-popup.show{transform:translateX(-50%) translateY(0)}
 .sending-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
@@ -162,8 +208,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     </div>
   </div>
   <div class="page-body">
-    <div class="sec-label">All Batches</div>
-    <div class="batch-grid" id="batchGrid"><div class="loading" style="grid-column:1/-1"><i class="ti ti-loader-2"></i>Loading...</div></div>
+    <div id="accessBanner"></div>
+    <div id="lockedMsg" style="display:none;text-align:center;padding:40px 20px;color:var(--text2)">
+      <i class="ti ti-lock" style="font-size:40px;color:var(--text3);display:block;margin-bottom:12px"></i>
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Access Required</div>
+      <div style="font-size:13px">Watch an ad above to unlock lectures for 24 hours.</div>
+    </div>
+    <div id="batchSection">
+      <div class="sec-label">All Batches</div>
+      <div class="batch-grid" id="batchGrid"><div class="loading" style="grid-column:1/-1"><i class="ti ti-loader-2"></i>Loading...</div></div>
+    </div>
   </div>
 </div>
 
@@ -293,6 +347,36 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <!-- Manage -->
     <div class="tab-content" id="tab-manage"><div id="manageList"></div></div>
   </div>
+</div>
+
+<!-- PAGE: Access -->
+<div class="page" id="page-access">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,#22c55e,#4f8ef7);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px">🔑</div>
+      <div><div style="font-size:15px;font-weight:700">Access</div><div style="font-size:10px;color:var(--text2)">Watch ad to unlock</div></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="access-page-wrap">
+      <div class="access-card" id="accessCard">
+        <!-- JS se render hoga -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-tab active" id="navHome" onclick="switchNavTab('home')">
+    <i class="ti ti-home"></i>
+    Home
+  </button>
+  <button class="nav-tab" id="navAccess" onclick="switchNavTab('access')">
+    <i class="ti ti-key" style="position:relative"></i>
+    <span id="accessDot" class="access-dot locked" style="position:relative;display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:4px;vertical-align:middle"></span>
+    Access
+  </button>
 </div>
 
 <div class="sending-popup" id="sendingPopup">
@@ -759,8 +843,221 @@ async function delLecture(bid,sid,cid,uid,lid){if(!confirm('Lecture delete?'))re
   else{if(c)c.lectures=c.lectures.filter(x=>x._id!==lid);}
   populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
 
-checkAdminAccess();
-load();
+// ── Access Control ────────────────────────────────────────────────────────────
+var accessExpiresAt = null;
+var countdownTimer = null;
+var currentTab = 'home';
+var userId = null;
+
+function getUserId() {
+  var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  return tgUser ? String(tgUser.id) : 'guest_' + (localStorage.getItem('guest_id') || (function(){ var id=Math.random().toString(36).slice(2); localStorage.setItem('guest_id',id); return id; })());
+}
+
+function hasAccess() {
+  if (isAdmin) return true;
+  if (!accessExpiresAt) return false;
+  return new Date(accessExpiresAt) > new Date();
+}
+
+async function loadAccess() {
+  if (isAdmin) return;
+  try {
+    userId = getUserId();
+    var r = await fetch('/api/access/' + userId);
+    var data = await r.json();
+    if (data.hasAccess && data.expiresAt) {
+      accessExpiresAt = data.expiresAt;
+    } else {
+      accessExpiresAt = null;
+    }
+  } catch(e) { accessExpiresAt = null; }
+}
+
+async function grantAccessDB() {
+  try {
+    userId = getUserId();
+    var r = await fetch('/api/access/' + userId, { method: 'POST' });
+    var data = await r.json();
+    if (data.expiresAt) accessExpiresAt = data.expiresAt;
+  } catch(e) {}
+}
+
+function getTimeLeft() {
+  if (!accessExpiresAt) return null;
+  var ms = new Date(accessExpiresAt) - new Date();
+  if (ms <= 0) return null;
+  var h = Math.floor(ms / 3600000);
+  var m = Math.floor((ms % 3600000) / 60000);
+  var s = Math.floor((ms % 60000) / 1000);
+  return { h:h, m:m, s:s, ms:ms, total: 24*3600000 };
+}
+
+function formatCountdown() {
+  var t = getTimeLeft();
+  if (!t) return null;
+  return (t.h < 10 ? '0'+t.h : t.h) + ':' + (t.m < 10 ? '0'+t.m : t.m) + ':' + (t.s < 10 ? '0'+t.s : t.s);
+}
+
+// ── Nav Tab Switch ────────────────────────────────────────────────────────────
+function switchNavTab(tab) {
+  currentTab = tab;
+  document.getElementById('navHome').classList.toggle('active', tab === 'home');
+  document.getElementById('navAccess').classList.toggle('active', tab === 'access');
+
+  if (tab === 'home') {
+    // home page active karo, access page hatao
+    var homeEl = document.getElementById('page-home');
+    var accEl = document.getElementById('page-access');
+    accEl.style.transition = 'none';
+    accEl.style.transform = 'translateX(100%)';
+    accEl.classList.remove('active');
+    homeEl.classList.add('active');
+    homeEl.style.transform = '';
+    // clear pageStack to home only
+    pageStack = ['home'];
+    if (tg) tg.BackButton.hide();
+  } else {
+    var homeEl = document.getElementById('page-home');
+    var accEl = document.getElementById('page-access');
+    homeEl.style.transition = 'none';
+    homeEl.style.transform = 'translateX(-25%)';
+    homeEl.classList.remove('active');
+    accEl.style.transition = 'none';
+    accEl.style.transform = 'translateX(0)';
+    accEl.classList.add('active');
+    renderAccessCard();
+    startCountdown();
+  }
+}
+
+function renderAccessCard() {
+  var card = document.getElementById('accessCard');
+  if (!card) return;
+
+  if (isAdmin) {
+    card.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text2)"><i class="ti ti-shield-check" style="font-size:48px;color:var(--green);display:block;margin-bottom:12px"></i><div style="font-size:16px;font-weight:600">Admin Access</div><div style="font-size:13px;margin-top:6px">You have permanent access.</div></div>';
+    return;
+  }
+
+  var t = getTimeLeft();
+  var locked = !hasAccess();
+
+  if (!locked && t) {
+    var pct = Math.min(100, Math.round((t.ms / t.total) * 100));
+    card.innerHTML =
+      '<div class="access-card-header">' +
+        '<i class="ti ti-shield-check status-unlocked"></i>' +
+        '<h2 class="status-unlocked">Access Unlocked!</h2>' +
+        '<p>All lectures are available. Your access expires in:</p>' +
+      '</div>' +
+      '<div class="countdown-box">' +
+        '<div class="countdown-time" id="countdownDisplay">' + (formatCountdown() || '--:--:--') + '</div>' +
+        '<div class="countdown-label">Hours : Minutes : Seconds</div>' +
+        '<div class="countdown-bar"><div class="countdown-bar-fill" id="countdownBar" style="width:' + pct + '%"></div></div>' +
+      '</div>' +
+      '<div class="access-action">' +
+        '<button class="extend-btn" id="watchAdBtn" onclick="watchAd()">' +
+          '<i class="ti ti-player-play"></i> Watch Ad — Extend by 24h' +
+        '</button>' +
+      '</div>';
+  } else {
+    card.innerHTML =
+      '<div class="access-card-header">' +
+        '<i class="ti ti-lock status-locked"></i>' +
+        '<h2>Unlock Lectures</h2>' +
+        '<p>Watch a short ad to get <strong>free access</strong> to all lectures for <strong>24 hours</strong>.</p>' +
+      '</div>' +
+      '<div style="padding:20px;background:var(--surface2);text-align:center">' +
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:4px">Access Status</div>' +
+        '<div style="font-size:15px;font-weight:700;color:var(--red)">🔒 Locked</div>' +
+      '</div>' +
+      '<div class="access-action">' +
+        '<button class="watch-ad-btn" id="watchAdBtn" onclick="watchAd()">' +
+          '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access' +
+        '</button>' +
+      '</div>';
+  }
+
+  // Update dot
+  var dot = document.getElementById('accessDot');
+  if (dot) {
+    dot.style.background = locked ? 'var(--red)' : 'var(--green)';
+  }
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(function() {
+    if (currentTab !== 'access') return;
+    var display = document.getElementById('countdownDisplay');
+    var bar = document.getElementById('countdownBar');
+    var t = getTimeLeft();
+    if (!t) {
+      accessExpiresAt = null;
+      renderAccessCard();
+      clearInterval(countdownTimer);
+      return;
+    }
+    if (display) display.textContent = formatCountdown();
+    if (bar) bar.style.width = Math.min(100, Math.round((t.ms / t.total) * 100)) + '%';
+  }, 1000);
+}
+
+function watchAd() {
+  var btn = document.getElementById('watchAdBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Loading Ad...';
+  }
+
+  if (typeof show_10970837 === 'undefined') {
+    toast('Ad not available. Try again later.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
+    return;
+  }
+
+  show_10970837().then(async function() {
+    await grantAccessDB();
+    renderAccessCard();
+    startCountdown();
+    // Update home page dot
+    var dot = document.getElementById('accessDot');
+    if (dot) dot.style.background = 'var(--green)';
+    toast('Access unlocked for 24 hours! 🎉', 'success');
+  }).catch(function() {
+    toast('Please watch the full ad.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
+  });
+}
+
+// Batch open pe access check
+var _origOpenBatch = openBatch;
+openBatch = function(bid) {
+  if (!hasAccess()) {
+    toast('Watch an ad to unlock access!', 'error');
+    switchNavTab('access');
+    return;
+  }
+  _origOpenBatch(bid);
+};
+
+async function init() {
+  await checkAdminAccess();
+  await Promise.all([load(), loadAccess()]);
+  // Update access dot
+  var dot = document.getElementById('accessDot');
+  if (dot) dot.style.background = hasAccess() ? 'var(--green)' : 'var(--red)';
+  // Remove old access banner from home
+  var banner = document.getElementById('accessBanner');
+  if (banner) banner.innerHTML = '';
+  var lockedMsg = document.getElementById('lockedMsg');
+  if (lockedMsg) lockedMsg.style.display = 'none';
+  var batchSection = document.getElementById('batchSection');
+  if (batchSection) batchSection.style.display = '';
+}
+init();
+
 </script>
 </body>
 </html>
