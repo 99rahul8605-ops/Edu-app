@@ -18,9 +18,9 @@
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
 
-.page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden}
-.page.active{transform:translateX(0)}
-.page.prev{transform:translateX(-30%)}
+.page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.page.active{transform:translateX(0);z-index:11}
+.page.prev{transform:translateX(-25%)}
 
 .topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0;min-height:56px}
 .back-btn{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
@@ -313,23 +313,53 @@ var picBase64 = '';
 // ── Nav ───────────────────────────────────────────────────────────────────────
 function goTo(pageId) {
   var cur = pageStack[pageStack.length-1];
-  document.getElementById('page-'+cur).classList.remove('active');
-  document.getElementById('page-'+cur).classList.add('prev');
-  document.getElementById('page-'+pageId).classList.add('active');
-  document.getElementById('page-'+pageId).classList.remove('prev');
+  var curEl = document.getElementById('page-'+cur);
+  var nextEl = document.getElementById('page-'+pageId);
+  // Next page ready karo (right mein)
+  nextEl.style.transition = 'none';
+  nextEl.style.transform = 'translateX(100%)';
+  nextEl.classList.add('active');
+  // Force reflow
+  nextEl.getBoundingClientRect();
+  // Animate both
+  nextEl.style.transition = '';
+  nextEl.style.transform = '';
+  curEl.style.transform = 'translateX(-25%)';
+  curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   pageStack.push(pageId);
   if (tg) tg.BackButton.show();
+  // Cleanup
+  setTimeout(() => {
+    curEl.classList.remove('active');
+    curEl.style.transform = '';
+    curEl.style.transition = '';
+  }, 300);
 }
+
 function goBack() {
   if (pageStack.length <= 1) return;
   var cur = pageStack.pop();
   var prev = pageStack[pageStack.length-1];
   var curEl = document.getElementById('page-'+cur);
-  curEl.classList.remove('active','prev');
-  curEl.style.transform = '';
-  document.getElementById('page-'+prev).classList.add('active');
-  document.getElementById('page-'+prev).classList.remove('prev');
+  var prevEl = document.getElementById('page-'+prev);
+  // Prev page ready karo (left mein)
+  prevEl.style.transition = 'none';
+  prevEl.style.transform = 'translateX(-25%)';
+  prevEl.classList.add('active');
+  // Force reflow
+  prevEl.getBoundingClientRect();
+  // Animate both
+  prevEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
+  prevEl.style.transform = '';
+  curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
+  curEl.style.transform = 'translateX(100%)';
   if (pageStack.length <= 1 && tg) tg.BackButton.hide();
+  // Cleanup
+  setTimeout(() => {
+    curEl.classList.remove('active');
+    curEl.style.transform = '';
+    curEl.style.transition = '';
+  }, 300);
 }
 if (tg) tg.BackButton.onClick(goBack);
 
