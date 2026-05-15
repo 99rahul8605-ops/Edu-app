@@ -369,7 +369,7 @@ function openBatch(bid) {
   if (!b) return;
   document.getElementById('subjPageTitle').textContent = b.name;
   document.getElementById('subjPageSub').textContent = b.subjects.length + ' subjects';
-  setHTML('batchHero', `
+  document.getElementById('batchHero').innerHTML = `
     <div class="hero-img">${b.pic ? `<img src="${b.pic}">` : '🎓'}</div>
     <div class="hero-body">
       <div class="hero-name">${b.name}</div>
@@ -379,7 +379,8 @@ function openBatch(bid) {
         <span class="hero-stat"><i class="ti ti-layers"></i>${b.subjects.reduce((a,s)=>a+s.chapters.length,0)} chapters</span>
       </div>
     </div>`;
-  var subjHtml = !b.subjects.length ? '<div class="empty"><i class="ti ti-books"></i>No subjects yet</div>' :
+  var list = document.getElementById('subjectList');
+  list.innerHTML = !b.subjects.length ? '<div class="empty"><i class="ti ti-books"></i>No subjects yet</div>' :
     b.subjects.map(s => `
       <div class="row" onclick="openSubject('${bid}','${s._id}')">
         <div class="row-icon" style="background:${s.color}22;border:1px solid ${s.color}44">${s.icon}</div>
@@ -389,7 +390,6 @@ function openBatch(bid) {
         </div>
         <i class="ti ti-chevron-right row-arrow"></i>
       </div>`).join('');
-  setHTML('subjectList', subjHtml);
   goTo('subjects');
 }
 
@@ -400,7 +400,8 @@ function openSubject(bid, sid) {
   if (!s) return;
   document.getElementById('chapPageTitle').textContent = s.name;
   document.getElementById('chapPageSub').textContent = s.chapters.length + ' chapters';
-  var chapHtml = !s.chapters.length ? '<div class="empty"><i class="ti ti-layers"></i>No chapters yet</div>' :
+  var list = document.getElementById('chapterList');
+  list.innerHTML = !s.chapters.length ? '<div class="empty"><i class="ti ti-layers"></i>No chapters yet</div>' :
     s.chapters.map((c,i) => `
       <div class="chap-row" onclick="openChapter('${bid}','${sid}','${c._id}')">
         <div class="chap-num" style="background:${s.color}">${i+1}</div>
@@ -410,7 +411,6 @@ function openSubject(bid, sid) {
         </div>
         <i class="ti ti-chevron-right row-arrow"></i>
       </div>`).join('');
-  setHTML('chapterList', chapHtml);
   goTo('chapters');
 }
 
@@ -472,7 +472,7 @@ function openChapter(bid, sid, cid) {
           </div>
         </div>`).join('');
   }
-  setHTML('unitList', html);
+  document.getElementById('unitList').innerHTML = html;
   goTo('units');
 }
 
@@ -485,7 +485,7 @@ function openUnit(bid, sid, cid, uid) {
   if (!u) return;
   document.getElementById('lecPageTitle').textContent = u.name;
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
-  setHTML('lectureList', !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
+  document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
     u.lectures.map((l,i) => `
       <div class="lec-row">
         <div class="lec-row-top">
@@ -500,21 +500,9 @@ function openUnit(bid, sid, cid, uid) {
   goTo('lectures');
 }
 
-// Smooth DOM update - no flash
-function setHTML(id, html) {
-  requestAnimationFrame(() => {
-    var el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  });
-}
-
 function openLink(url, type) {
-  if (tg) {
-    // openLink keeps mini app open, openTelegramLink closes it
-    tg.openLink(url);
-  } else {
-    window.open(url, '_blank');
-  }
+  if (tg) tg.openTelegramLink(url);
+  else window.open(url, '_blank');
   showSendingPopup(type);
 }
 
@@ -537,15 +525,12 @@ async function load() {
 }
 
 function renderBatches(list) {
-  // Only render if home page is active - avoid blink on other pages
   var el = document.getElementById('batchGrid');
-  if (!el) return;
   if (!list || !list.length) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-school"></i>No batches yet</div>';
     return;
   }
-  // Use DocumentFragment to avoid reflow flash
-  var html = list.map(b => `
+  el.innerHTML = list.map(b => `
     <div class="batch-card" onclick="openBatch('${b._id}')">
       <div class="batch-img">${b.pic ? `<img src="${b.pic}">` : '🎓'}</div>
       <div class="batch-body">
@@ -554,7 +539,6 @@ function renderBatches(list) {
         <div class="batch-meta">${b.subjects.length} subjects</div>
       </div>
     </div>`).join('');
-  requestAnimationFrame(() => { el.innerHTML = html; });
 }
 
 function handleSearch(q) {
