@@ -21,20 +21,22 @@ mongoose
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 
+// ✅ API routes PEHLE — static se pehle hona zaroori hai
 app.get("/health", (req, res) => res.status(200).json({
   status: "ok",
   uptime: process.uptime(),
   mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
 }));
 
-app.use("/api", require("./routes/course"));
-
-// Owner username frontend ko do
 app.get("/api/config", (req, res) => {
   res.json({ ownerUsername: (process.env.OWNER_USERNAME || "").toLowerCase() });
 });
+
+app.use("/api", require("./routes/course"));
+
+// ✅ Static files BAAD mein
+app.use(express.static(path.join(__dirname, "public")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -67,7 +69,6 @@ async function startBot() {
       {
         reply_markup: {
           inline_keyboard: [[
-            // web_app se Telegram Mini App ke andar khulega
             { text: "📚 Lectures Dekho", web_app: { url: WEB_URL } }
           ]]
         }
