@@ -133,6 +133,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:5px;display:flex;align-items:center;font-size:16px}
 .del-btn:active{color:var(--red)}
 
+/* Home access strip */
+.home-strip{background:linear-gradient(135deg,#0f1a2e,#0a1a14);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.home-strip-locked{background:linear-gradient(135deg,#1a0f0f,#0a0e1a);border-bottom:1px solid #3a1a1a;cursor:pointer}
+.home-strip i{font-size:18px;flex-shrink:0}
+.home-strip-info{flex:1;min-width:0}
+.home-strip-title{font-size:12px;font-weight:600}
+.home-strip-time{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px;line-height:1.2}
+.home-strip-bar{height:3px;background:var(--surface3);border-radius:2px;margin-top:6px;overflow:hidden}
+.home-strip-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 1s linear}
+
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0d1224;border-top:1px solid var(--border);display:flex;z-index:50;max-width:480px;margin:0 auto}
 .nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 12px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;gap:3px;transition:color 0.2s;border:none;background:none}
 .nav-tab i{font-size:22px}
@@ -207,13 +217,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <input class="search-input" id="searchInput" placeholder="Search batches..." oninput="handleSearch(this.value)">
     </div>
   </div>
+  <!-- Countdown strip on home -->
+  <div id="homeAccessStrip" style="display:none"></div>
   <div class="page-body">
-    <div id="accessBanner"></div>
-    <div id="lockedMsg" style="display:none;text-align:center;padding:40px 20px;color:var(--text2)">
-      <i class="ti ti-lock" style="font-size:40px;color:var(--text3);display:block;margin-bottom:12px"></i>
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Access Required</div>
-      <div style="font-size:13px">Watch an ad above to unlock lectures for 24 hours.</div>
-    </div>
     <div id="batchSection">
       <div class="sec-label">All Batches</div>
       <div class="batch-grid" id="batchGrid"><div class="loading" style="grid-column:1/-1"><i class="ti ti-loader-2"></i>Loading...</div></div>
@@ -927,7 +933,6 @@ function switchNavTab(tab) {
     accEl.style.transform = 'translateX(0)';
     accEl.classList.add('active');
     renderAccessCard();
-    startCountdown();
   }
 }
 
@@ -1011,24 +1016,34 @@ function watchAd() {
     btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Loading Ad...';
   }
 
-  if (typeof show_10970837 === 'undefined') {
-    toast('Ad not available. Try again later.', 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
-    return;
-  }
-
-  show_10970837().then(async function() {
-    await grantAccessDB();
-    renderAccessCard();
-    startCountdown();
-    // Update home page dot
-    var dot = document.getElementById('accessDot');
-    if (dot) dot.style.background = 'var(--green)';
-    toast('Access unlocked for 24 hours! 🎉', 'success');
-  }).catch(function() {
-    toast('Please watch the full ad.', 'error');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
-  });
+  // Monetag Rewarded Ad - poll max 8 sec for SDK to load
+  var waited = 0;
+  var pollAd = setInterval(function() {
+    waited += 300;
+    if (typeof show_10970837 === 'function') {
+      clearInterval(pollAd);
+      show_10970837().then(async function() {
+        await grantAccessDB();
+        renderAccessCard();
+        renderHomeStrip();
+        toast('Access unlocked for 24 hours! 🎉', 'success');
+      }).catch(function(err) {
+        console.log('Ad error:', err);
+        toast('Please watch the full ad to unlock.', 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access';
+        }
+      });
+    } else if (waited >= 8000) {
+      clearInterval(pollAd);
+      toast('Ad not available right now. Try again later.', 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access';
+      }
+    }
+  }, 300);
 }
 
 // Batch open pe access check
@@ -1042,19 +1057,67 @@ openBatch = function(bid) {
   _origOpenBatch(bid);
 };
 
+function renderHomeStrip() {
+  var strip = document.getElementById('homeAccessStrip');
+  if (!strip) return;
+  if (isAdmin) { strip.style.display = 'none'; return; }
+  var t = getTimeLeft();
+  if (t) {
+    var pct = Math.min(100, Math.round((t.ms / t.total) * 100));
+    strip.style.display = '';
+    strip.innerHTML =
+      '<div class="home-strip">' +
+        '<i class="ti ti-shield-check" style="color:var(--green)"></i>' +
+        '<div class="home-strip-info">' +
+          '<div class="home-strip-title" style="color:var(--green)">Access Active — Time Remaining</div>' +
+          '<div class="home-strip-time" id="homeCountdown" style="color:var(--accent)">' + (formatCountdown() || '--:--:--') + '</div>' +
+          '<div class="home-strip-bar"><div class="home-strip-bar-fill" id="homeBar" style="width:' + pct + '%"></div></div>' +
+        '</div>' +
+        '<button onclick="switchNavTab('access')" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:5px 10px;border-radius:16px;font-size:11px;cursor:pointer;flex-shrink:0">+24h</button>' +
+      '</div>';
+    // Start home countdown
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(function() {
+      var t2 = getTimeLeft();
+      var hc = document.getElementById('homeCountdown');
+      var hb = document.getElementById('homeBar');
+      var cd = document.getElementById('countdownDisplay');
+      var cb = document.getElementById('countdownBar');
+      if (!t2) {
+        accessExpiresAt = null;
+        renderHomeStrip();
+        renderAccessCard();
+        clearInterval(countdownTimer);
+        return;
+      }
+      var fmt = formatCountdown();
+      var p = Math.min(100, Math.round((t2.ms / t2.total) * 100));
+      if (hc) hc.textContent = fmt;
+      if (hb) hb.style.width = p + '%';
+      if (cd) cd.textContent = fmt;
+      if (cb) cb.style.width = p + '%';
+    }, 1000);
+  } else {
+    strip.style.display = '';
+    strip.innerHTML =
+      '<div class="home-strip home-strip-locked" onclick="switchNavTab('access')">' +
+        '<i class="ti ti-lock" style="color:var(--red)"></i>' +
+        '<div class="home-strip-info">' +
+          '<div class="home-strip-title" style="color:var(--red)">Access Locked</div>' +
+          '<div style="font-size:12px;color:var(--text2)">Tap to watch an ad and unlock</div>' +
+        '</div>' +
+        '<i class="ti ti-chevron-right" style="color:var(--text3)"></i>' +
+      '</div>';
+  }
+  // Update dot
+  var dot = document.getElementById('accessDot');
+  if (dot) dot.style.background = t ? 'var(--green)' : 'var(--red)';
+}
+
 async function init() {
   await checkAdminAccess();
   await Promise.all([load(), loadAccess()]);
-  // Update access dot
-  var dot = document.getElementById('accessDot');
-  if (dot) dot.style.background = hasAccess() ? 'var(--green)' : 'var(--red)';
-  // Remove old access banner from home
-  var banner = document.getElementById('accessBanner');
-  if (banner) banner.innerHTML = '';
-  var lockedMsg = document.getElementById('lockedMsg');
-  if (lockedMsg) lockedMsg.style.display = 'none';
-  var batchSection = document.getElementById('batchSection');
-  if (batchSection) batchSection.style.display = '';
+  renderHomeStrip();
 }
 init();
 
