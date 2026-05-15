@@ -600,11 +600,8 @@ function openUnit(bid, sid, cid, uid) {
 
 function openLink(url, type) {
   if (tg) {
-    if (url.includes('t.me/') || url.includes('telegram.me/')) {
-      tg.openTelegramLink(url);
-    } else {
-      tg.openLink(url);
-    }
+    // openLink use karo — app band nahi hoga, external browser mein khulega
+    tg.openLink(url, { try_instant_view: false });
   } else {
     var a = document.createElement('a');
     a.href = url;
