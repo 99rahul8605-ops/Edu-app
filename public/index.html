@@ -393,11 +393,14 @@ function openChapter(bid, sid, cid) {
   var color = s.color;
   document.getElementById('unitPageTitle').textContent = c.name;
 
+  // Dono dikhao — units bhi, direct lectures bhi
+  var html = '';
+
   if (c.units && c.units.length > 0) {
-    // Units hain — units dikhao
-    document.getElementById('unitPageSub').textContent = c.units.length + ' units';
+    var totalLec = c.units.reduce((a,u)=>a+u.lectures.length,0) + c.lectures.length;
+    document.getElementById('unitPageSub').textContent = c.units.length + ' units · ' + totalLec + ' lectures';
     document.getElementById('unitSecLabel').textContent = 'UNITS';
-    document.getElementById('unitList').innerHTML = c.units.map((u,i) => `
+    html += c.units.map((u,i) => `
       <div class="unit-row" onclick="openUnit('${bid}','${sid}','${cid}','${u._id}')">
         <div class="unit-icon"><i class="ti ti-folder" style="color:#fff;font-size:16px"></i></div>
         <div class="row-info">
@@ -406,11 +409,27 @@ function openChapter(bid, sid, cid) {
         </div>
         <i class="ti ti-chevron-right row-arrow"></i>
       </div>`).join('');
+
+    // Direct lectures bhi hain to alag section mein dikhao
+    if (c.lectures && c.lectures.length > 0) {
+      html += `<div style="padding:14px 0 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase">OTHER LECTURES</div>`;
+      html += c.lectures.map((l,i) => `
+        <div class="lec-row">
+          <div class="lec-row-top">
+            <div class="lec-num">${i+1}</div>
+            <div class="lec-name">${l.name}</div>
+          </div>
+          <div class="lec-btns">
+            <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
+            ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+          </div>
+        </div>`).join('');
+    }
   } else {
     // Units nahi — seedhe lectures
     document.getElementById('unitPageSub').textContent = c.lectures.length + ' lectures';
     document.getElementById('unitSecLabel').textContent = 'LECTURES';
-    document.getElementById('unitList').innerHTML = !c.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
+    html = !c.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
       c.lectures.map((l,i) => `
         <div class="lec-row">
           <div class="lec-row-top">
@@ -423,6 +442,7 @@ function openChapter(bid, sid, cid) {
           </div>
         </div>`).join('');
   }
+  document.getElementById('unitList').innerHTML = html;
   goTo('units');
 }
 
