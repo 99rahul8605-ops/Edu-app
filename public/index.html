@@ -1015,7 +1015,17 @@ function watchAd() {
   function tryShowAd(attemptsLeft) {
     if (typeof show_10970837 !== 'undefined') {
       var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
-      show_10970837({ type: 'pop', ymid: userId }).then(async function() {
+      show_10970837({
+        type: 'inApp',
+        ymid: userId,
+        inAppSettings: {
+          frequency: 1,
+          capping: 0.1,
+          interval: 30,
+          timeout: 3,
+          everyPage: false
+        }
+      }).then(async function() {
         await grantAccessDB();
         renderAccessCard();
         startCountdown();
