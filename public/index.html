@@ -524,21 +524,55 @@ async function load() {
   }
 }
 
+function makeBatchCard(b) {
+  var div = document.createElement('div');
+  div.className = 'batch-card';
+  div.setAttribute('data-id', b._id);
+  div.onclick = function(){ openBatch(b._id); };
+  div.innerHTML =
+    '<div class="batch-img">' + (b.pic ? '<img src="'+b.pic+'">' : '🎓') + '</div>' +
+    '<div class="batch-body">' +
+      '<div class="batch-name">' + b.name + '</div>' +
+      (b.description ? '<div class="batch-desc">' + b.description + '</div>' : '') +
+      '<div class="batch-meta">' + b.subjects.length + ' subjects</div>' +
+    '</div>';
+  return div;
+}
+
 function renderBatches(list) {
   var el = document.getElementById('batchGrid');
   if (!list || !list.length) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-school"></i>No batches yet</div>';
     return;
   }
-  el.innerHTML = list.map(b => `
-    <div class="batch-card" onclick="openBatch('${b._id}')">
-      <div class="batch-img">${b.pic ? `<img src="${b.pic}">` : '🎓'}</div>
-      <div class="batch-body">
-        <div class="batch-name">${b.name}</div>
-        ${b.description ? `<div class="batch-desc">${b.description}</div>` : ''}
-        <div class="batch-meta">${b.subjects.length} subjects</div>
-      </div>
-    </div>`).join('');
+  var existing = {};
+  el.querySelectorAll('.batch-card[data-id]').forEach(function(card) {
+    existing[card.getAttribute('data-id')] = card;
+  });
+  var ids = list.map(function(b){ return b._id; });
+  Object.keys(existing).forEach(function(id) {
+    if (!ids.includes(id)) { existing[id].remove(); }
+  });
+  var emptyEl = el.querySelector('.empty');
+  if (emptyEl) el.removeChild(emptyEl);
+  list.forEach(function(b) {
+    if (existing[b._id]) {
+      var card = existing[b._id];
+      card.querySelector('.batch-name').textContent = b.name;
+      var descEl = card.querySelector('.batch-desc');
+      if (b.description) {
+        if (descEl) descEl.textContent = b.description;
+        else card.querySelector('.batch-body').insertAdjacentHTML('beforeend', '<div class="batch-desc">'+b.description+'</div>');
+      } else if (descEl) descEl.remove();
+      card.querySelector('.batch-meta').textContent = b.subjects.length + ' subjects';
+    } else {
+      var newCard = makeBatchCard(b);
+      newCard.style.opacity = '0';
+      newCard.style.transition = 'opacity 0.25s';
+      el.appendChild(newCard);
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ newCard.style.opacity = '1'; }); });
+    }
+  });
 }
 
 function handleSearch(q) {
