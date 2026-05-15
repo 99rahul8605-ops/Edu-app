@@ -408,13 +408,9 @@ if (tg) { tg.ready(); tg.expand(); }
 var _linkJustOpened = false;
 
 document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'hidden' && _linkJustOpened) {
-    // App minimize hua link ki wajah se — body hide karo
-    document.body.style.opacity = '0';
-  }
-  if (document.visibilityState === 'visible') {
+  // Sirf tab handle karo jab link ki wajah se minimize hua ho
+  if (document.visibilityState === 'visible' && _linkJustOpened) {
     _linkJustOpened = false;
-    // Thoda wait karo taaki page settle ho, phir smooth fade in
     setTimeout(function() {
       document.body.style.transition = 'opacity 0.22s ease';
       document.body.style.opacity = '1';
@@ -424,11 +420,13 @@ document.addEventListener('visibilitychange', function() {
 
 if (tg) {
   tg.onEvent('activated', function() {
-    _linkJustOpened = false;
-    setTimeout(function() {
-      document.body.style.transition = 'opacity 0.22s ease';
-      document.body.style.opacity = '1';
-    }, 80);
+    if (_linkJustOpened) {
+      _linkJustOpened = false;
+      setTimeout(function() {
+        document.body.style.transition = 'opacity 0.22s ease';
+        document.body.style.opacity = '1';
+      }, 80);
+    }
   });
 }
 
@@ -633,22 +631,24 @@ function openLink(url, type) {
     document.body.style.transition = 'opacity 0.15s ease';
     document.body.style.opacity = '0';
 
-    // Fallback — agar 2.5s mein minimize nahi hua (redirect cancel/fail)
-    // to wapas dikhao
+    // Fallback — agar minimize nahi hua to 1.5s baad wapas dikhao
     var fallbackTimer = setTimeout(function() {
       _linkJustOpened = false;
       document.body.style.transition = 'opacity 0.22s ease';
       document.body.style.opacity = '1';
     }, 1500);
 
-    setTimeout(function() {
-      tg.openLink(url, { try_instant_view: false });
-      // Agar visibilitychange fire hua matlab minimize hua — fallback cancel karo
-      var onHide = function() {
+    // visibilitychange pe fallback cancel karo (minimize hua)
+    var onHide = function(e) {
+      if (document.visibilityState === 'hidden') {
         clearTimeout(fallbackTimer);
         document.removeEventListener('visibilitychange', onHide);
-      };
-      document.addEventListener('visibilitychange', onHide);
+      }
+    };
+    document.addEventListener('visibilitychange', onHide);
+
+    setTimeout(function() {
+      tg.openLink(url, { try_instant_view: false });
     }, 120);
   } else {
     var a = document.createElement('a');
@@ -1121,7 +1121,6 @@ function startCountdown() {
 }
 
 function watchAd() {
-  // 24hr restriction — agar access abhi bhi active hai to ad nahi dekhne dena
   if (hasAccess()) {
     toast('Aapka access already active hai!', 'error');
     return;
@@ -1135,19 +1134,43 @@ function watchAd() {
 
   function tryShowAd(attemptsLeft) {
     if (typeof show_11011844 !== 'undefined') {
-      var userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
+      var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
+
+      // Ad show karo
       show_11011844({
-        type: 'rewardedInterstitial',
-        ymid: userId
-      }).then(function() {
-        // Ad poora dekh liya — ab claim button dikhao
-        adWatched = true;
-        renderAccessCard();
-        toast('Ad complete! Ab Claim karo apna access. 👇', 'success');
-      }).catch(function() {
-        toast('Poora ad dekho tab milega access.', 'error');
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
+        type: 'inApp',
+        ymid: uid,
+        inAppSettings: {
+          frequency: 1,
+          capping: 0.1,
+          interval: 30,
+          timeout: 3,
+          everyPage: false
+        }
       });
+
+      // inApp ka .then() turant resolve hota hai
+      // Isliye minimum 15 seconds wait karo — tab claim milega
+      var AD_MIN_SECONDS = 15;
+      var remaining = AD_MIN_SECONDS;
+
+      if (btn) {
+        btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + remaining + 's)';
+      }
+
+      var adTimer = setInterval(function() {
+        remaining--;
+        if (btn) {
+          btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + remaining + 's)';
+        }
+        if (remaining <= 0) {
+          clearInterval(adTimer);
+          adWatched = true;
+          renderAccessCard();
+          toast('Ad complete! Ab Claim karo apna access. 👇', 'success');
+        }
+      }, 1000);
+
     } else if (attemptsLeft > 0) {
       setTimeout(function() { tryShowAd(attemptsLeft - 1); }, 500);
     } else {
