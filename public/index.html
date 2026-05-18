@@ -93,17 +93,8 @@ body.ready{transition:none}
 .unit-row:active{background:var(--surface2)}
 .unit-icon{width:34px;height:34px;border-radius:8px;background:var(--accent2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
 
-/* Lecture row */
+/* Lecture row — see bottom of file for full redesign styles */
 .lec-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:background 0.15s}
-.lec-row:active{background:var(--surface2)}
-.lec-row-top{display:flex;align-items:center;gap:12px}
-.lec-num{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
-.lec-name{flex:1;font-size:14px;font-weight:500;line-height:1.3}
-.lec-btns{display:flex;gap:8px;margin-top:10px;margin-left:46px}
-.lec-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:var(--radius-sm);border:none;font-size:12px;font-weight:600;cursor:pointer}
-.lec-btn-watch{background:var(--accent);color:#fff}
-.lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
-.lec-btn-notes:active{border-color:var(--accent);color:var(--accent)}
 
 /* Section label */
 .sec-label{padding:14px 16px 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase}
@@ -573,11 +564,9 @@ function openChapter(bid, sid, cid) {
         var idx = _popupLectures.push(l) - 1;
         return `
         <div class="lec-row" onclick="showLecturePopup(${idx})">
-          <div class="lec-row-top">
-            <div class="lec-num">${i+1}</div>
-            <div class="lec-name">${l.name}</div>
-            <i class="ti ti-chevron-right row-arrow"></i>
-          </div>
+          <div class="lec-num">${i+1}</div>
+          <div class="lec-name">${l.name}</div>
+          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
         </div>`;
       }).join('');
     }
@@ -590,11 +579,9 @@ function openChapter(bid, sid, cid) {
         var idx = _popupLectures.push(l) - 1;
         return `
         <div class="lec-row" onclick="showLecturePopup(${idx})">
-          <div class="lec-row-top">
-            <div class="lec-num">${i+1}</div>
-            <div class="lec-name">${l.name}</div>
-            <i class="ti ti-chevron-right row-arrow"></i>
-          </div>
+          <div class="lec-num">${i+1}</div>
+          <div class="lec-name">${l.name}</div>
+          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
         </div>`;
       }).join('');
   }
@@ -616,11 +603,9 @@ function openUnit(bid, sid, cid, uid) {
       var idx = _popupLectures.push(l) - 1;
       return `
       <div class="lec-row" onclick="showLecturePopup(${idx})">
-        <div class="lec-row-top">
-          <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <i class="ti ti-chevron-right row-arrow"></i>
-        </div>
+        <div class="lec-num">${i+1}</div>
+        <div class="lec-name">${l.name}</div>
+        <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
       </div>`;
     }).join('');
   goTo('lectures');
@@ -1268,19 +1253,192 @@ async function init() {
 init();
 
 </script>
-<!-- Lecture Popup Modal -->
-<div class="modal-overlay" id="lecturePopup" onclick="closeLecturePopupOutside(event)">
-  <div class="modal" style="padding-bottom:24px">
-    <div class="modal-handle"></div>
-    <button class="modal-close" onclick="closeLecturePopup()"><i class="ti ti-x"></i></button>
-    <div class="modal-title"><i class="ti ti-player-play"></i><span id="popupLecName">Lecture</span></div>
-    <div id="popupButtons"></div>
+<!-- Lecture Popup -->
+<div id="lecturePopup" onclick="closeLecturePopupOutside(event)">
+  <div class="lec-popup-sheet">
+    <div class="lec-popup-header">
+      <div class="lec-popup-handle"></div>
+      <div class="lec-popup-icon-wrap"><i class="ti ti-player-play-filled"></i></div>
+      <div class="lec-popup-title" id="popupLecName">Lecture</div>
+      <button class="lec-popup-close" onclick="closeLecturePopup()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="lec-popup-body" id="popupButtons"></div>
   </div>
 </div>
 
 <style>
 /* Light mode fixes */
 body.light-mode .modal{background:#fff;color:var(--text)}
+body.light-mode .modal-title{color:var(--text)}
+body.light-mode .form-input,body.light-mode .form-select{background:var(--surface2);color:var(--text);border-color:var(--border)}
+body.light-mode .form-label{color:var(--text2)}
+body.light-mode .manage-item{background:var(--surface2)}
+body.light-mode .manage-item-name{color:var(--text)}
+body.light-mode .manage-item-sub{color:var(--text2)}
+body.light-mode .tab-btn{color:var(--text2);border-color:var(--border)}
+body.light-mode .row{background:var(--surface);border-color:var(--border)}
+body.light-mode .row-name{color:var(--text)}
+body.light-mode .chap-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .chap-name{color:var(--text)}
+body.light-mode .unit-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .lec-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .lec-name{color:var(--text)}
+body.light-mode .batch-card{background:var(--surface);border-color:var(--border)}
+body.light-mode .batch-name{color:var(--text)}
+body.light-mode .search-input{background:var(--surface2);color:var(--text);border-color:var(--border)}
+body.light-mode .search-input::placeholder{color:var(--text3)}
+body.light-mode .nav-tab{color:var(--text3)}
+body.light-mode .nav-tab.active{color:var(--accent)}
+body.light-mode .hero{background:var(--surface);border-color:var(--border)}
+body.light-mode .hero-name{color:var(--text)}
+body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
+body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
+
+/* ── Lecture Popup ──────────────────────────────── */
+#lecturePopup {
+  display:flex;
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0);
+  z-index:500;
+  align-items:flex-end;justify-content:center;
+  pointer-events:none;
+  transition:background 0.3s ease;
+}
+#lecturePopup.show {
+  background:rgba(0,0,0,0.72);
+  pointer-events:all;
+}
+.lec-popup-sheet {
+  width:100%;max-width:480px;
+  background:var(--surface);
+  border-radius:24px 24px 0 0;
+  overflow:hidden;
+  transform:translateY(100%);
+  transition:transform 0.35s cubic-bezier(.32,1.1,.58,1);
+  will-change:transform;
+}
+#lecturePopup.show .lec-popup-sheet { transform:translateY(0); }
+.lec-popup-header {
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  padding:20px 18px 18px;position:relative;
+}
+.lec-popup-handle {
+  width:36px;height:4px;background:rgba(255,255,255,0.35);
+  border-radius:2px;margin:0 auto 14px;
+}
+.lec-popup-icon-wrap {
+  width:44px;height:44px;background:rgba(255,255,255,0.2);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;
+}
+.lec-popup-icon-wrap i{font-size:22px;color:#fff}
+.lec-popup-title {
+  font-size:15px;font-weight:700;color:#fff;line-height:1.35;padding-right:36px;
+}
+.lec-popup-close {
+  position:absolute;top:16px;right:14px;width:30px;height:30px;
+  background:rgba(255,255,255,0.2);border:none;border-radius:50%;
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.lec-popup-body { padding:16px 16px 28px;display:flex;flex-direction:column;gap:10px; }
+.popup-lec-btn {
+  width:100%;display:flex;align-items:center;gap:14px;
+  padding:14px 16px;border-radius:14px;border:none;
+  cursor:pointer;text-align:left;
+  transition:transform 0.12s,opacity 0.12s;
+}
+.popup-lec-btn:active{transform:scale(0.97);opacity:0.85}
+.popup-lec-btn-watch{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border) !important;color:var(--text)}
+body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
+.popup-lec-btn-icon {
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.popup-lec-btn-watch .popup-lec-btn-icon{background:rgba(255,255,255,0.2)}
+.popup-lec-btn-notes .popup-lec-btn-icon{background:var(--surface3)}
+.popup-lec-btn-icon i{font-size:19px}
+.popup-lec-btn-watch .popup-lec-btn-icon i{color:#fff}
+.popup-lec-btn-notes .popup-lec-btn-icon i{color:var(--accent)}
+.popup-lec-btn-text{flex:1}
+.popup-lec-btn-label{font-size:14px;font-weight:700;display:block}
+.popup-lec-btn-sub{font-size:11px;opacity:0.7;margin-top:2px;display:block}
+.popup-lec-btn-arrow{font-size:16px;opacity:0.4}
+
+/* ── Lecture row redesign ─────────────────────── */
+.lec-row {
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);display:flex;align-items:center;
+  padding:13px 14px;gap:12px;cursor:pointer;
+  transition:background 0.15s,border-color 0.15s,transform 0.12s;
+}
+.lec-row:active{background:var(--surface2);border-color:var(--accent);transform:scale(0.985)}
+.lec-num {
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.lec-name{flex:1;font-size:14px;font-weight:500;line-height:1.35}
+.lec-play-icon {
+  width:30px;height:30px;border-radius:50%;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.lec-play-icon i{font-size:13px;color:var(--accent)}
+
+/* ── Contact Button ───────────────────────────── */
+#contactBtn{position:fixed;bottom:80px;right:16px;z-index:300;cursor:pointer;user-select:none}
+#contactInner{
+  display:flex;align-items:center;gap:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:50px;padding:10px;
+  box-shadow:0 4px 16px rgba(79,142,247,0.4);
+  transition:all 0.3s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;max-width:42px;height:42px;
+}
+#contactInner.expanded{max-width:180px;padding:10px 14px;gap:7px}
+#contactIcon{font-size:18px;flex-shrink:0;line-height:1}
+#contactText{
+  font-size:12px;font-weight:700;color:#fff;white-space:nowrap;
+  overflow:hidden;max-width:0;opacity:0;
+  transition:max-width 0.3s ease,opacity 0.3s ease;
+}
+#contactInner.expanded #contactText{max-width:140px;opacity:1}
+</style>
+
+<!-- Contact Floating Button -->
+<div id="contactBtn" onclick="handleContact()">
+  <div id="contactInner">
+    <span id="contactIcon">💬</span>
+    <span id="contactText"></span>
+  </div>
+</div>
+
+<script>
+var _contactExpanded=false,_contactTimer=null;
+function handleContact(){
+  if(!_contactExpanded){
+    _contactExpanded=true;
+    document.getElementById('contactInner').classList.add('expanded');
+    document.getElementById('contactIcon').textContent='📩';
+    document.getElementById('contactText').textContent='Click to open support';
+    _contactTimer=setTimeout(collapseContact,5000);
+  } else {
+    clearTimeout(_contactTimer);
+    if(tg){tg.openLink('https://t.me/team_secret_cont_bot');}
+    else{window.open('https://t.me/team_secret_cont_bot','_blank');}
+    collapseContact();
+  }
+}
+function collapseContact(){
+  _contactExpanded=false;clearTimeout(_contactTimer);
+  document.getElementById('contactInner').classList.remove('expanded');
+  setTimeout(function(){document.getElementById('contactIcon').textContent='💬';},300);
+}
+</script>
+
+</body>
+</html>
 body.light-mode .modal-title{color:var(--text)}
 body.light-mode .form-input,body.light-mode .form-select{background:var(--surface2);color:var(--text);border-color:var(--border)}
 body.light-mode .form-label{color:var(--text2)}
@@ -1322,24 +1480,40 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
 function showLecturePopup(idx) {
   var lecture = _popupLectures[idx];
   if (!lecture) return;
+  var popup = document.getElementById('lecturePopup');
   document.getElementById('popupLecName').textContent = lecture.name;
   var btns = '';
   if (lecture.link) {
     btns += `<button class="popup-lec-btn popup-lec-btn-watch" onclick="openLink('${lecture.link}')">
-      <i class="ti ti-player-play"></i> Watch Lecture
+      <div class="popup-lec-btn-icon"><i class="ti ti-player-play-filled"></i></div>
+      <div class="popup-lec-btn-text">
+        <span class="popup-lec-btn-label">Watch Lecture</span>
+        <span class="popup-lec-btn-sub">Opens in Telegram</span>
+      </div>
+      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
     </button>`;
   }
   if (lecture.notes) {
     btns += `<button class="popup-lec-btn popup-lec-btn-notes" onclick="openLink('${lecture.notes}','notes')">
-      <i class="ti ti-file-text"></i> Class Notes
+      <div class="popup-lec-btn-icon"><i class="ti ti-file-text"></i></div>
+      <div class="popup-lec-btn-text">
+        <span class="popup-lec-btn-label">Class Notes</span>
+        <span class="popup-lec-btn-sub">PDF / Document</span>
+      </div>
+      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
     </button>`;
   }
+  if (!lecture.link && !lecture.notes) {
+    btns = '<div style="text-align:center;padding:16px 0;color:var(--text2);font-size:13px"><i class="ti ti-link-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--text3)"></i>No links available</div>';
+  }
   document.getElementById('popupButtons').innerHTML = btns;
-  document.getElementById('lecturePopup').classList.add('show');
+  popup.classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeLecturePopup() {
   document.getElementById('lecturePopup').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 function closeLecturePopupOutside(e) {
