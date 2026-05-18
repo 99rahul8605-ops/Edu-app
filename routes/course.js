@@ -46,8 +46,8 @@ function isAdminRequest(req) {
 router.get("/batches", async (req, res) => {
   try {
     const admin = isAdminRequest(req);
-    // Admin ko sab batches milte hain (private bhi); users ko sirf public
-    const filter = admin ? {} : { isPublic: true };
+    // Admin ko sab batches; users ko public + purane batches (isPublic field nahi hai to public maano)
+    const filter = admin ? {} : { $or: [{ isPublic: true }, { isPublic: { $exists: false } }] };
     res.json(await Batch.find(filter).sort({ order: 1 }));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
