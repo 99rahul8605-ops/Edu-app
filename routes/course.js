@@ -25,15 +25,55 @@ function verifyAdmin(req, res, next) {
 }
 
 // ── Batches ──────────────────────────────────────────────────────────────────
+
+// Helper: check if request is from admin (without blocking)
+function isAdminRequest(req) {
+  const initData = req.headers["x-tg-init-data"];
+  if (!initData) return false;
+  try {
+    const params = new URLSearchParams(initData);
+    const hash = params.get("hash");
+    params.delete("hash");
+    const dataCheckString = Array.from(params.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${k}=${v}`).join("\n");
+    const secretKey = crypto.createHmac("sha256","WebAppData").update(BOT_TOKEN).digest();
+    const expectedHash = crypto.createHmac("sha256",secretKey).update(dataCheckString).digest("hex");
+    if (expectedHash !== hash) return false;
+    const user = JSON.parse(params.get("user") || "{}");
+    return (user.username||"").toLowerCase() === OWNER_USERNAME;
+  } catch(e) { return false; }
+}
+
 router.get("/batches", async (req, res) => {
-  try { res.json(await Batch.find().sort({ order: 1 })); }
-  catch(e) { res.status(500).json({ error: e.message }); }
+  try {
+    const admin = isAdminRequest(req);
+    // Admin ko sab batches milte hain (private bhi); users ko sirf public
+    const filter = admin ? {} : { isPublic: true };
+    res.json(await Batch.find(filter).sort({ order: 1 }));
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 router.post("/batches", verifyAdmin, async (req, res) => {
   try {
     const count = await Batch.countDocuments();
-    res.json(await Batch.create({ name: req.body.name, pic: req.body.pic||"", description: req.body.description||"", order: count }));
+    // Naya batch default private hoga — owner publish karega jab ready ho
+    res.json(await Batch.create({
+      name: req.body.name,
+      pic: req.body.pic||"",
+      description: req.body.description||"",
+      order: count,
+      isPublic: false,
+    }));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Toggle batch visibility: private ↔ public
+router.patch("/batches/:bid/publish", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    if (!batch) return res.status(404).json({ error: "Batch not found" });
+    batch.isPublic = !batch.isPublic;
+    await batch.save();
+    res.json({ success: true, isPublic: batch.isPublic });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
