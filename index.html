@@ -302,6 +302,20 @@ body.ready{transition:none}
   </div>
 </div>
 
+<!-- PAGE: Lecture Detail -->
+<div class="page" id="page-lecture-detail">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1;min-width:0">
+      <div class="topbar-title" id="lecDetailTitle">Lecture</div>
+      <div class="topbar-sub" id="lecDetailSub"></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div id="lecDetailContent"></div>
+  </div>
+</div>
+
 <!-- Admin Modal -->
 <div class="modal-overlay" id="adminModal" onclick="closeModalOutside(event)">
   <div class="modal">
@@ -432,20 +446,16 @@ function goTo(pageId) {
   var cur = pageStack[pageStack.length-1];
   var curEl = document.getElementById('page-'+cur);
   var nextEl = document.getElementById('page-'+pageId);
-  // Next page ready karo (right mein)
   nextEl.style.transition = 'none';
   nextEl.style.transform = 'translateX(100%)';
   nextEl.classList.add('active');
-  // Force reflow
   nextEl.getBoundingClientRect();
-  // Animate both
   nextEl.style.transition = '';
   nextEl.style.transform = '';
   curEl.style.transform = 'translateX(-25%)';
   curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   pageStack.push(pageId);
-  if (tg) tg.BackButton.show();
-  // Cleanup
+  syncBackButton();
   setTimeout(() => {
     curEl.classList.remove('active');
     curEl.style.transform = '';
@@ -459,26 +469,45 @@ function goBack() {
   var prev = pageStack[pageStack.length-1];
   var curEl = document.getElementById('page-'+cur);
   var prevEl = document.getElementById('page-'+prev);
-  // Prev page ready karo (left mein)
   prevEl.style.transition = 'none';
   prevEl.style.transform = 'translateX(-25%)';
   prevEl.classList.add('active');
-  // Force reflow
   prevEl.getBoundingClientRect();
-  // Animate both
   prevEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   prevEl.style.transform = '';
   curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   curEl.style.transform = 'translateX(100%)';
-  if (pageStack.length <= 1 && tg) tg.BackButton.hide();
-  // Cleanup
+  syncBackButton();
   setTimeout(() => {
     curEl.classList.remove('active');
     curEl.style.transform = '';
     curEl.style.transition = '';
   }, 300);
 }
-if (tg) tg.BackButton.onClick(goBack);
+
+function syncBackButton() {
+  if (!tg) return;
+  // Always re-register the handler to survive app focus loss
+  tg.BackButton.offClick(goBack);
+  tg.BackButton.onClick(goBack);
+  if (pageStack.length > 1) {
+    tg.BackButton.show();
+  } else {
+    tg.BackButton.hide();
+  }
+}
+
+// Also re-sync when app regains focus (user comes back from bot)
+if (tg) {
+  tg.onEvent('activated', function() {
+    syncBackButton();
+    // Close popup cleanly if it was open when user left
+    var popup = document.getElementById('lecturePopup');
+    if (popup && popup.classList.contains('show')) {
+      // no-op, popup disabled
+    }
+  });
+}
 
 // ── Open Batch ────────────────────────────────────────────────────────────────
 function openBatch(bid) {
@@ -537,10 +566,10 @@ function openChapter(bid, sid, cid) {
   var s = b && b.subjects.find(x => x._id === sid);
   var c = s && s.chapters.find(x => x._id === cid);
   if (!c) return;
+  _popupLectures = []; // Reset on every chapter open
   var color = s.color;
   document.getElementById('unitPageTitle').textContent = c.name;
 
-  // Dono dikhao — units bhi, direct lectures bhi
   var html = '';
 
   if (c.units && c.units.length > 0) {
@@ -596,6 +625,7 @@ function openUnit(bid, sid, cid, uid) {
   var c = s && s.chapters.find(x => x._id === cid);
   var u = c && c.units.find(x => x._id === uid);
   if (!u) return;
+  _popupLectures = []; // Reset on every unit open
   document.getElementById('lecPageTitle').textContent = u.name;
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
   document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
@@ -616,8 +646,8 @@ function openLink(url, type) {
     toast('Link not available!', 'error');
     return;
   }
-  // Close lecture popup first
-  closeLecturePopup();
+  // Open link first — THEN close popup after a small delay
+  // This prevents the popup close animation from conflicting with app-switch
   if (tg) {
     tg.openLink(url, { try_instant_view: false });
   } else {
@@ -1253,7 +1283,23 @@ async function init() {
 init();
 
 </script>
-<!-- Lecture Popup -->
+<script>
+function showLecturePopup(idx) {
+  var lecture = _popupLectures[idx];
+  if (!lecture) return;
+  if (lecture.link) {
+    openLink(lecture.link);
+  } else if (lecture.notes) {
+    openLink(lecture.notes, 'notes');
+  } else {
+    toast('No links available!', 'error');
+  }
+}
+function closeLecturePopup() {}
+function closeLecturePopupOutside(e) {}
+</script>
+
+<!-- Lecture Popup (hidden — no longer used) -->
 <div id="lecturePopup" onclick="closeLecturePopupOutside(event)">
   <div class="lec-popup-sheet">
     <div class="lec-popup-header">
@@ -1303,6 +1349,9 @@ body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
   align-items:flex-end;justify-content:center;
   pointer-events:none;
   transition:background 0.3s ease;
+  will-change:background;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
 }
 #lecturePopup.show {
   background:rgba(0,0,0,0.72);
@@ -1316,6 +1365,8 @@ body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
   transform:translateY(100%);
   transition:transform 0.35s cubic-bezier(.32,1.1,.58,1);
   will-change:transform;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
 }
 #lecturePopup.show .lec-popup-sheet { transform:translateY(0); }
 .lec-popup-header {
@@ -1344,9 +1395,12 @@ body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
   width:100%;display:flex;align-items:center;gap:14px;
   padding:14px 16px;border-radius:14px;border:none;
   cursor:pointer;text-align:left;
-  transition:transform 0.12s,opacity 0.12s;
+  transition:opacity 0.12s;
+  will-change:opacity;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
 }
-.popup-lec-btn:active{transform:scale(0.97);opacity:0.85}
+.popup-lec-btn:active{opacity:0.75}
 .popup-lec-btn-watch{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
 .popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border) !important;color:var(--text)}
 body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
@@ -1369,9 +1423,13 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);display:flex;align-items:center;
   padding:13px 14px;gap:12px;cursor:pointer;
-  transition:background 0.15s,border-color 0.15s,transform 0.12s;
+  transition:background 0.15s,border-color 0.15s;
+  will-change:transform;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  transform:translateZ(0);
 }
-.lec-row:active{background:var(--surface2);border-color:var(--accent);transform:scale(0.985)}
+.lec-row:active{background:var(--surface2);border-color:var(--accent)}
 .lec-num {
   width:36px;height:36px;border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
@@ -1434,171 +1492,6 @@ function collapseContact(){
   _contactExpanded=false;clearTimeout(_contactTimer);
   document.getElementById('contactInner').classList.remove('expanded');
   setTimeout(function(){document.getElementById('contactIcon').textContent='💬';},300);
-}
-</script>
-
-</body>
-</html>
-body.light-mode .modal-title{color:var(--text)}
-body.light-mode .form-input,body.light-mode .form-select{background:var(--surface2);color:var(--text);border-color:var(--border)}
-body.light-mode .form-label{color:var(--text2)}
-body.light-mode .manage-item{background:var(--surface2)}
-body.light-mode .manage-item-name{color:var(--text)}
-body.light-mode .manage-item-sub{color:var(--text2)}
-body.light-mode .tab-btn{color:var(--text2);border-color:var(--border)}
-body.light-mode .row{background:var(--surface);border-color:var(--border)}
-body.light-mode .row-name{color:var(--text)}
-body.light-mode .chap-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .chap-name{color:var(--text)}
-body.light-mode .unit-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .lec-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .lec-name{color:var(--text)}
-body.light-mode .batch-card{background:var(--surface);border-color:var(--border)}
-body.light-mode .batch-name{color:var(--text)}
-body.light-mode .search-input{background:var(--surface2);color:var(--text);border-color:var(--border)}
-body.light-mode .search-input::placeholder{color:var(--text3)}
-body.light-mode .nav-tab{color:var(--text3)}
-body.light-mode .nav-tab.active{color:var(--accent)}
-body.light-mode .hero{background:var(--surface);border-color:var(--border)}
-body.light-mode .hero-name{color:var(--text)}
-body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
-body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
-
-/* Popup lecture buttons - compact */
-.popup-lec-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:9px 16px;border-radius:20px;border:none;
-  font-size:12px;font-weight:600;cursor:pointer;
-}
-.popup-lec-btn-watch{background:var(--accent);color:#fff}
-.popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
-#popupButtons{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-</style>
-
-<script>
-function showLecturePopup(idx) {
-  var lecture = _popupLectures[idx];
-  if (!lecture) return;
-  var popup = document.getElementById('lecturePopup');
-  document.getElementById('popupLecName').textContent = lecture.name;
-  var btns = '';
-  if (lecture.link) {
-    btns += `<button class="popup-lec-btn popup-lec-btn-watch" onclick="openLink('${lecture.link}')">
-      <div class="popup-lec-btn-icon"><i class="ti ti-player-play-filled"></i></div>
-      <div class="popup-lec-btn-text">
-        <span class="popup-lec-btn-label">Watch Lecture</span>
-        <span class="popup-lec-btn-sub">Opens in Telegram</span>
-      </div>
-      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
-    </button>`;
-  }
-  if (lecture.notes) {
-    btns += `<button class="popup-lec-btn popup-lec-btn-notes" onclick="openLink('${lecture.notes}','notes')">
-      <div class="popup-lec-btn-icon"><i class="ti ti-file-text"></i></div>
-      <div class="popup-lec-btn-text">
-        <span class="popup-lec-btn-label">Class Notes</span>
-        <span class="popup-lec-btn-sub">PDF / Document</span>
-      </div>
-      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
-    </button>`;
-  }
-  if (!lecture.link && !lecture.notes) {
-    btns = '<div style="text-align:center;padding:16px 0;color:var(--text2);font-size:13px"><i class="ti ti-link-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--text3)"></i>No links available</div>';
-  }
-  document.getElementById('popupButtons').innerHTML = btns;
-  popup.classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeLecturePopup() {
-  document.getElementById('lecturePopup').classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-function closeLecturePopupOutside(e) {
-  if (e.target.id === 'lecturePopup') closeLecturePopup();
-}
-</script>
-
-<!-- Contact Floating Button -->
-<div id="contactBtn" onclick="handleContact()">
-  <div id="contactInner">
-    <span id="contactIcon">💬</span>
-    <span id="contactText"></span>
-  </div>
-</div>
-
-<style>
-#contactBtn{
-  position:fixed;bottom:80px;right:16px;z-index:300;
-  cursor:pointer;user-select:none;
-}
-#contactInner{
-  display:flex;align-items:center;gap:0px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  border-radius:50px;
-  padding:10px;
-  box-shadow:0 4px 16px rgba(79,142,247,0.4);
-  transition:all 0.3s cubic-bezier(.4,0,.2,1);
-  overflow:hidden;
-  max-width:42px;
-  height:42px;
-}
-#contactInner.expanded{
-  max-width:180px;
-  padding:10px 14px;
-  gap:7px;
-  border-radius:50px;
-}
-#contactIcon{font-size:18px;flex-shrink:0;line-height:1}
-#contactText{
-  font-size:12px;font-weight:700;color:#fff;
-  white-space:nowrap;overflow:hidden;
-  max-width:0;opacity:0;
-  transition:max-width 0.3s ease, opacity 0.3s ease;
-}
-#contactInner.expanded #contactText{max-width:140px;opacity:1}
-</style>
-
-<script>
-var _contactExpanded = false;
-var _contactTimer = null;
-
-function handleContact() {
-  if (!_contactExpanded) {
-    // First click — expand and show contact info
-    _contactExpanded = true;
-    var inner = document.getElementById('contactInner');
-    var text = document.getElementById('contactText');
-    var icon = document.getElementById('contactIcon');
-    inner.classList.add('expanded');
-    icon.textContent = '📩';
-    text.textContent = 'Click to open support';
-
-    // Auto collapse after 5 seconds
-    _contactTimer = setTimeout(function() {
-      collapseContact();
-    }, 5000);
-  } else {
-    // Second click within 5 sec — open the bot
-    clearTimeout(_contactTimer);
-    if (tg) {
-      tg.openLink('https://t.me/team_secret_cont_bot');
-    } else {
-      window.open('https://t.me/team_secret_cont_bot', '_blank');
-    }
-    collapseContact();
-  }
-}
-
-function collapseContact() {
-  _contactExpanded = false;
-  clearTimeout(_contactTimer);
-  var inner = document.getElementById('contactInner');
-  var icon = document.getElementById('contactIcon');
-  inner.classList.remove('expanded');
-  setTimeout(function() { icon.textContent = '💬'; }, 300);
 }
 </script>
 
