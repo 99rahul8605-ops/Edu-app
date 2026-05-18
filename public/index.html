@@ -522,22 +522,23 @@ if (tg) {
   tg.ready();
   tg.expand();
   // Fix 2: Force a reflow after expand so the WebView recalculates layout
-  // with the new viewport dimensions before painting anything.
+  // with the new viewport dimensions before the first paint.
   requestAnimationFrame(function() {
     document.body.offsetHeight; // reading this triggers synchronous reflow
-    // Fix 3: GPU-accelerate all scrollable page-bodies so the compositor
-    // handles them on the correct layer, not the stale compact-mode one.
-    document.querySelectorAll('.page-body').forEach(function(el) {
-      el.style.transform = 'translateZ(0)';
-      el.style.willChange = 'transform';
-      el.style.webkitOverflowScrolling = 'touch';
-    });
-    // Also promote fixed elements (bottom nav, toasts, FAB) to their own
-    // compositor layers so they repaint at the correct expanded position.
-    document.querySelectorAll('.bottom-nav, #contactBtn, .toast, .sending-popup').forEach(function(el) {
-      el.style.transform = 'translateZ(0)';
-      el.style.willChange = 'transform';
-    });
+    // Fix 3: GPU-accelerate ONLY the active page-body and bottom-nav.
+    // We deliberately exclude toasts, popups and the FAB because promoting
+    // them to compositor layers makes them visible before their show/active
+    // class is applied, causing the "elements showing without a call" bug.
+    var activePage = document.querySelector('.page.active');
+    if (activePage) {
+      var body = activePage.querySelector('.page-body');
+      if (body) {
+        body.style.transform = 'translateZ(0)';
+        body.style.webkitOverflowScrolling = 'touch';
+      }
+    }
+    var nav = document.querySelector('.bottom-nav');
+    if (nav) nav.style.transform = 'translateZ(0)';
   });
 }
 
