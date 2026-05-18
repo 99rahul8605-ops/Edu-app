@@ -1294,7 +1294,11 @@ function startCountdown() {
   }, 1000);
 }
 
-function watchAd() {
+var _adToken = null;
+var _adTimer = null;
+var _adRemaining = 0;
+
+async function watchAd() {
   if (hasAccess()) {
     toast('Aapka access already active hai!', 'error');
     return;
@@ -1306,39 +1310,43 @@ function watchAd() {
     btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Loading Ad...';
   }
 
+  // Step 1: Server se token lo — ad blocker ke paas ye token nahi hoga
+  try {
+    userId = getUserId();
+    var r = await fetch('/api/access/token/' + userId, { method: 'POST' });
+    var data = await r.json();
+    if (!data.token) throw new Error('No token');
+    _adToken = data.token;
+  } catch(e) {
+    toast('Server error. Dobara try karo.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
+    return;
+  }
+
+  // Step 2: Ad show karo
   function tryShowAd(attemptsLeft) {
     if (typeof show_11011844 !== 'undefined') {
       var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
 
-      // Ad show karo
       show_11011844({
         type: 'inApp',
         ymid: uid,
-        inAppSettings: {
-          frequency: 1,
-          capping: 0.1,
-          interval: 30,
-          timeout: 3,
-          everyPage: false
-        }
+        inAppSettings: { frequency: 1, capping: 0.1, interval: 30, timeout: 3, everyPage: false }
       });
 
-      // inApp ka .then() turant resolve hota hai
-      // Isliye minimum 15 seconds wait karo — tab claim milega
+      // Step 3: Server-side timer — 15s countdown, token ke saath claim hoga
       var AD_MIN_SECONDS = 15;
-      var remaining = AD_MIN_SECONDS;
+      _adRemaining = AD_MIN_SECONDS;
 
-      if (btn) {
-        btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + remaining + 's)';
-      }
+      if (btn) btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + _adRemaining + 's)';
 
-      var adTimer = setInterval(function() {
-        remaining--;
-        if (btn) {
-          btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + remaining + 's)';
-        }
-        if (remaining <= 0) {
-          clearInterval(adTimer);
+      if (_adTimer) clearInterval(_adTimer);
+      _adTimer = setInterval(function() {
+        _adRemaining--;
+        if (btn) btn.innerHTML = '<i class="ti ti-player-play"></i> Ad chal raha hai... (' + _adRemaining + 's)';
+        if (_adRemaining <= 0) {
+          clearInterval(_adTimer);
+          _adTimer = null;
           adWatched = true;
           renderAccessCard();
           toast('Ad complete! Ab Claim karo apna access. 👇', 'success');
@@ -1348,7 +1356,9 @@ function watchAd() {
     } else if (attemptsLeft > 0) {
       setTimeout(function() { tryShowAd(attemptsLeft - 1); }, 500);
     } else {
-      toast('Ad load nahi hua. Internet check karo aur dobara try karo.', 'error');
+      // Ad SDK load nahi hua — token invalidate karo
+      _adToken = null;
+      toast('Ad load nahi hua. Ad blocker band karo aur dobara try karo.', 'error');
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
     }
   }
@@ -1357,21 +1367,48 @@ function watchAd() {
 }
 
 async function claimAccess() {
+  // Token check — ad blocker ne ad block kiya to token nahi hoga
+  if (!_adToken) {
+    toast('Ad properly nahi chala. Ad blocker band karo aur dobara try karo.', 'error');
+    adWatched = false;
+    renderAccessCard();
+    return;
+  }
+
+  // Timer check — 15s se pehle claim nahi ho sakta
+  if (_adRemaining > 0) {
+    toast('Ad abhi chal raha hai. Ruko...', 'error');
+    return;
+  }
+
   var btn = document.querySelector('[onclick="claimAccess()"]');
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Claiming...';
   }
+
   try {
-    await grantAccessDB();
+    userId = getUserId();
+    // Token ke saath server ko claim request bhejo
+    var r = await fetch('/api/access/claim/' + userId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: _adToken })
+    });
+    var data = await r.json();
+    if (!data.hasAccess) throw new Error(data.error || 'Claim failed');
+
+    _adToken = null;
     adWatched = false;
+    accessExpiresAt = data.expiresAt;
+    localStorage.setItem('edubot_access_expires', data.expiresAt);
     renderAccessCard();
     startCountdown();
     var dot = document.getElementById('accessDot');
     if (dot) dot.style.background = 'var(--green)';
     toast('Access unlocked for 24 hours! 🎉', 'success');
   } catch(e) {
-    toast('Claim failed. Dobara try karo.', 'error');
+    toast('Claim failed: ' + (e.message || 'Dobara try karo.'), 'error');
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-gift"></i> Claim 24h Access'; }
   }
 }
