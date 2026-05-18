@@ -15,16 +15,31 @@
   --text:#e8eaf6;--text2:#8892a4;--text3:#4a5568;
   --green:#22c55e;--red:#ef4444;--border:#1e2d45;
   --radius:12px;--radius-sm:8px;
+  --topbar:#0d1224;
 }
+body.light-mode{
+  --bg:#f0f4ff;--surface:#ffffff;--surface2:#e8edf8;--surface3:#dce4f5;
+  --text:#1a1f36;--text2:#5a6380;--text3:#9aa3be;
+  --border:#d0d8ee;--topbar:#ffffff;
+}
+/* Theme toggle switch */
+.theme-toggle{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.theme-toggle-label{font-size:11px;color:var(--text2);font-weight:500}
+.toggle-switch{position:relative;width:38px;height:22px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:22px;cursor:pointer;transition:background 0.25s;border:1px solid var(--border)}
+.toggle-slider:before{content:'☀️';position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:11px;line-height:1;transition:left 0.25s}
+.toggle-switch input:checked + .toggle-slider{background:var(--accent)}
+.toggle-switch input:checked + .toggle-slider:before{content:'🌙';left:18px}
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none;opacity:0;transition:opacity 0.18s ease}
-body.ready{opacity:1}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none;opacity:0}
+body.ready{opacity:1;transition:none}
 
 .page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .page.active{transform:translateX(0);z-index:11}
 .page.prev{transform:translateX(-25%)}
 
-.topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0;min-height:56px}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--topbar);border-bottom:1px solid var(--border);flex-shrink:0;min-height:56px}
 .back-btn{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .topbar-title{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .topbar-sub{font-size:11px;color:var(--text2);margin-top:1px}
@@ -33,7 +48,7 @@ body.ready{opacity:1}
 
 .page-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
-.search-wrap{padding:10px 16px;background:#0d1224;border-bottom:1px solid var(--border);flex-shrink:0}
+.search-wrap{padding:10px 16px;background:var(--topbar);border-bottom:1px solid var(--border);flex-shrink:0}
 .search-inner{position:relative}
 .search-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px 9px 36px;border-radius:var(--radius-sm);font-size:14px;outline:none}
 .search-input:focus{border-color:var(--accent)}
@@ -139,7 +154,7 @@ body.ready{opacity:1}
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:5px;display:flex;align-items:center;font-size:16px}
 .del-btn:active{color:var(--red)}
 
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0d1224;border-top:1px solid var(--border);display:flex;z-index:50;max-width:480px;margin:0 auto}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--topbar);border-top:1px solid var(--border);display:flex;z-index:50;max-width:480px;margin:0 auto}
 .nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 12px;cursor:pointer;color:var(--text3);font-size:10px;font-weight:500;gap:3px;transition:color 0.2s;border:none;background:none}
 .nav-tab i{font-size:22px}
 .nav-tab.active{color:var(--accent)}
@@ -206,6 +221,12 @@ body.ready{opacity:1}
       <div><div style="font-size:15px;font-weight:700">EduBot</div><div style="font-size:10px;color:var(--text2)">Select Batch</div></div>
     </div>
     <button class="admin-btn" id="adminBtn" onclick="openAdmin()"><i class="ti ti-settings" style="font-size:13px"></i> Admin</button>
+    <div class="theme-toggle">
+      <label class="toggle-switch" title="Toggle light/dark mode">
+        <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
   </div>
   <div class="search-wrap">
     <div class="search-inner">
@@ -689,6 +710,26 @@ function toast(msg, type) {
   var t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast show'+(type?' '+type:'');
   setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Theme Toggle ──────────────────────────────────────────────────────────────
+function toggleTheme(isLight) {
+  if (isLight) {
+    document.body.classList.add('light-mode');
+    localStorage.setItem('edubot_theme', 'light');
+  } else {
+    document.body.classList.remove('light-mode');
+    localStorage.setItem('edubot_theme', 'dark');
+  }
+}
+
+function initTheme() {
+  var saved = localStorage.getItem('edubot_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light-mode');
+    var toggle = document.getElementById('themeToggle');
+    if (toggle) toggle.checked = true;
+  }
 }
 
 // ── Pic ───────────────────────────────────────────────────────────────────────
@@ -1195,6 +1236,7 @@ openBatch = function(bid) {
 };
 
 async function init() {
+  initTheme();
   await checkAdminAccess();
   await Promise.all([load(), loadAccess()]);
   // Update access dot
@@ -1210,11 +1252,94 @@ async function init() {
   // Home timer bar
   updateHomeTimer();
   if (hasAccess()) startCountdown();
-  // Sab load ho gaya — ab dikhao (blink free)
+  // Show page — fade in once, then remove transition so nothing blinks later
+  document.body.style.transition = 'opacity 0.18s ease';
   document.body.classList.add('ready');
+  setTimeout(function() { document.body.style.transition = 'none'; }, 200);
 }
 init();
 
 </script>
+<!-- Contact Floating Button -->
+<div id="contactBtn" onclick="handleContact()">
+  <div id="contactInner">
+    <span id="contactIcon">💬</span>
+    <span id="contactText"></span>
+  </div>
+</div>
+
+<style>
+#contactBtn{
+  position:fixed;bottom:80px;right:16px;z-index:300;
+  cursor:pointer;user-select:none;
+}
+#contactInner{
+  display:flex;align-items:center;gap:0px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:50px;
+  padding:10px;
+  box-shadow:0 4px 16px rgba(79,142,247,0.4);
+  transition:all 0.3s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+  max-width:42px;
+  height:42px;
+}
+#contactInner.expanded{
+  max-width:180px;
+  padding:10px 14px;
+  gap:7px;
+  border-radius:50px;
+}
+#contactIcon{font-size:18px;flex-shrink:0;line-height:1}
+#contactText{
+  font-size:12px;font-weight:700;color:#fff;
+  white-space:nowrap;overflow:hidden;
+  max-width:0;opacity:0;
+  transition:max-width 0.3s ease, opacity 0.3s ease;
+}
+#contactInner.expanded #contactText{max-width:140px;opacity:1}
+</style>
+
+<script>
+var _contactExpanded = false;
+var _contactTimer = null;
+
+function handleContact() {
+  if (!_contactExpanded) {
+    // First click — expand and show contact info
+    _contactExpanded = true;
+    var inner = document.getElementById('contactInner');
+    var text = document.getElementById('contactText');
+    var icon = document.getElementById('contactIcon');
+    inner.classList.add('expanded');
+    icon.textContent = '📩';
+    text.textContent = 'Click to open support';
+
+    // Auto collapse after 5 seconds
+    _contactTimer = setTimeout(function() {
+      collapseContact();
+    }, 5000);
+  } else {
+    // Second click within 5 sec — open the bot
+    clearTimeout(_contactTimer);
+    if (tg) {
+      tg.openLink('https://t.me/team_secret_cont_bot');
+    } else {
+      window.open('https://t.me/team_secret_cont_bot', '_blank');
+    }
+    collapseContact();
+  }
+}
+
+function collapseContact() {
+  _contactExpanded = false;
+  clearTimeout(_contactTimer);
+  var inner = document.getElementById('contactInner');
+  var icon = document.getElementById('contactIcon');
+  inner.classList.remove('expanded');
+  setTimeout(function() { icon.textContent = '💬'; }, 300);
+}
+</script>
+
 </body>
 </html>
