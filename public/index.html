@@ -49,6 +49,10 @@ body.ready{opacity:1}
 .batch-name{font-size:14px;font-weight:600;line-height:1.3}
 .batch-desc{font-size:11px;color:var(--text2);margin-top:3px}
 .batch-meta{font-size:11px;color:var(--accent);margin-top:5px;font-weight:500}
+.batch-private-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 7px;margin-top:5px;letter-spacing:0.3px}
+.publish-btn{background:none;border:1px solid var(--border);color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px;transition:all 0.15s;flex-shrink:0}
+.publish-btn.public{border-color:var(--green);color:var(--green)}
+.publish-btn:active{opacity:0.7}
 
 /* List rows */
 .list{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
@@ -699,13 +703,18 @@ async function load() {
 
 function renderBatches(list) {
   var el = document.getElementById('batchGrid');
-  if (!list || !list.length) {
+  // Non-admin users: sirf public batches dikhao
+  var visible = isAdmin ? list : list.filter(b => b.isPublic);
+  if (!visible || !visible.length) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-school"></i>No batches yet</div>';
     return;
   }
-  el.innerHTML = list.map(b => `
-    <div class="batch-card" onclick="openBatch('${b._id}')">
-      <div class="batch-img">${b.pic ? `<img src="${b.pic}">` : '🎓'}</div>
+  el.innerHTML = visible.map(b => `
+    <div class="batch-card" onclick="openBatch('${b._id}')" style="${!b.isPublic ? 'opacity:0.6;border-style:dashed' : ''}">
+      <div class="batch-img" style="position:relative">
+        ${b.pic ? `<img src="${b.pic}">` : '🎓'}
+        ${!b.isPublic ? '<div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;color:#aaa;display:flex;align-items:center;gap:4px"><i class="ti ti-lock" style="font-size:10px"></i>Private</div>' : ''}
+      </div>
       <div class="batch-body">
         <div class="batch-name">${b.name}</div>
         ${b.description ? `<div class="batch-desc">${b.description}</div>` : ''}
@@ -890,7 +899,11 @@ async function addLecture() {
 function renderManage() {
   var html='';
   batches.forEach(b=>{
-    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects</div></div><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
+    var pubLabel = b.isPublic
+      ? '<i class="ti ti-eye-off" style="font-size:12px"></i> Unpublish'
+      : '<i class="ti ti-send" style="font-size:12px"></i> Publish';
+    var pubClass = b.isPublic ? 'publish-btn public' : 'publish-btn';
+    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${b.isPublic ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
     b.subjects.forEach(s=>{
       html+=`<div class="manage-item" style="padding-left:24px"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${b.name} · ${s.chapters.length} ch</div></div><button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button></div>`;
       s.chapters.forEach(c=>{
@@ -918,6 +931,17 @@ async function delLecture(bid,sid,cid,uid,lid){if(!confirm('Lecture delete?'))re
   if(uid){var u=c&&c.units.find(x=>x._id===uid);if(u)u.lectures=u.lectures.filter(x=>x._id!==lid);}
   else{if(c)c.lectures=c.lectures.filter(x=>x._id!==lid);}
   populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+
+async function togglePublish(bid) {
+  try {
+    var r = await apiFetch('/api/batches/' + bid + '/publish', 'PATCH');
+    var b = batches.find(x => x._id === bid);
+    if (b) b.isPublic = r.isPublic;
+    renderBatches(batches);
+    renderManage();
+    toast(r.isPublic ? '🟢 Batch is now Public!' : '🔒 Batch is now Private!', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
 
 // ── Access Control ────────────────────────────────────────────────────────────
 var accessExpiresAt = null;
