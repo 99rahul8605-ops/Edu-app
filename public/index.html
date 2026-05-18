@@ -464,12 +464,6 @@ function goTo(pageId) {
 }
 
 function goBack() {
-  // If popup is open, close it first — don't navigate
-  var popup = document.getElementById('lecturePopup');
-  if (popup && popup.classList.contains('show')) {
-    closeLecturePopup();
-    return;
-  }
   if (pageStack.length <= 1) return;
   var cur = pageStack.pop();
   var prev = pageStack[pageStack.length-1];
@@ -510,7 +504,7 @@ if (tg) {
     // Close popup cleanly if it was open when user left
     var popup = document.getElementById('lecturePopup');
     if (popup && popup.classList.contains('show')) {
-      closeLecturePopup();
+      // no-op, popup disabled
     }
   });
 }
@@ -665,8 +659,6 @@ function openLink(url, type) {
     a.click();
     document.body.removeChild(a);
   }
-  // Close popup after a brief delay so transition doesn't cause blink
-  setTimeout(function() { closeLecturePopup(); }, 80);
   showSendingPopup(type);
 }
 
@@ -1291,7 +1283,23 @@ async function init() {
 init();
 
 </script>
-<!-- Lecture Popup -->
+<script>
+function showLecturePopup(idx) {
+  var lecture = _popupLectures[idx];
+  if (!lecture) return;
+  if (lecture.link) {
+    openLink(lecture.link);
+  } else if (lecture.notes) {
+    openLink(lecture.notes, 'notes');
+  } else {
+    toast('No links available!', 'error');
+  }
+}
+function closeLecturePopup() {}
+function closeLecturePopupOutside(e) {}
+</script>
+
+<!-- Lecture Popup (hidden — no longer used) -->
 <div id="lecturePopup" onclick="closeLecturePopupOutside(event)">
   <div class="lec-popup-sheet">
     <div class="lec-popup-header">
