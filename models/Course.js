@@ -33,6 +33,7 @@ const batchSchema = new mongoose.Schema({
   pic: { type: String, default: "" }, // base64 image
   description: { type: String, default: "" },
   order: { type: Number, default: 0 },
+  isPublic: { type: Boolean, default: false }, // private by default, owner publish karega
   subjects: [subjectSchema],
 });
 
