@@ -408,32 +408,6 @@ body.ready{opacity:1}
 var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-// ── Resume Fix (link open ke baad wapas aane pe blink nahi) ─────────────────
-var _linkJustOpened = false;
-
-document.addEventListener('visibilitychange', function() {
-  // Sirf tab handle karo jab link ki wajah se minimize hua ho
-  if (document.visibilityState === 'visible' && _linkJustOpened) {
-    _linkJustOpened = false;
-    setTimeout(function() {
-      document.body.style.transition = 'opacity 0.22s ease';
-      document.body.style.opacity = '1';
-    }, 80);
-  }
-});
-
-if (tg) {
-  tg.onEvent('activated', function() {
-    if (_linkJustOpened) {
-      _linkJustOpened = false;
-      setTimeout(function() {
-        document.body.style.transition = 'opacity 0.22s ease';
-        document.body.style.opacity = '1';
-      }, 80);
-    }
-  });
-}
-
 var batches = [];
 var isAdmin = false;
 var pageStack = ['home'];
@@ -631,47 +605,11 @@ function openUnit(bid, sid, cid, uid) {
 
 function openLink(url, type) {
   if (!url || url.trim() === '') {
-    toast('Link available nahi hai!', 'error');
+    toast('Link not available!', 'error');
     return;
   }
   if (tg) {
-    _linkJustOpened = true;
-    document.body.style.transition = 'opacity 0.15s ease';
-    document.body.style.opacity = '0';
-
-    // Fallback — 2s baad wapas dikhao no matter what
-    var fallbackTimer = setTimeout(function() {
-      _linkJustOpened = false;
-      document.body.style.transition = 'opacity 0.22s ease';
-      document.body.style.opacity = '1';
-    }, 2000);
-
-    // visibilitychange — sirf hidden pe fallback cancel karo
-    var onVisible = function() {
-      if (document.visibilityState === 'visible') {
-        clearTimeout(fallbackTimer);
-        document.removeEventListener('visibilitychange', onVisible);
-        _linkJustOpened = false;
-        setTimeout(function() {
-          document.body.style.transition = 'opacity 0.22s ease';
-          document.body.style.opacity = '1';
-        }, 80);
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-
-    setTimeout(function() {
-      try {
-        tg.openLink(url, { try_instant_view: false });
-      } catch(e) {
-        // Link open nahi hua — turant wapas dikhao
-        clearTimeout(fallbackTimer);
-        document.removeEventListener('visibilitychange', onVisible);
-        _linkJustOpened = false;
-        document.body.style.opacity = '1';
-        toast('Link open nahi hua!', 'error');
-      }
-    }, 120);
+    tg.openLink(url, { try_instant_view: false });
   } else {
     var a = document.createElement('a');
     a.href = url;
