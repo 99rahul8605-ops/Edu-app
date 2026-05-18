@@ -31,8 +31,8 @@ body.light-mode{
 .toggle-slider:before{content:'☀️';position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:11px;line-height:1;transition:left 0.25s}
 .toggle-switch input:checked + .toggle-slider{background:var(--accent)}
 .toggle-switch input:checked + .toggle-slider:before{content:'🌙';left:18px}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
+html{position:fixed;inset:0;overflow:hidden}
+body{position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
 body.fadein{transition:none}
 body.ready{transition:none}
 
@@ -518,11 +518,37 @@ body.ready{transition:none}
 
 <script>
 var tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) {
+  tg.ready();
+  tg.expand();
+  // Fix 2: Force a reflow after expand so the WebView recalculates layout
+  // with the new viewport dimensions before painting anything.
+  requestAnimationFrame(function() {
+    document.body.offsetHeight; // reading this triggers synchronous reflow
+    // Fix 3: GPU-accelerate all scrollable page-bodies so the compositor
+    // handles them on the correct layer, not the stale compact-mode one.
+    document.querySelectorAll('.page-body').forEach(function(el) {
+      el.style.transform = 'translateZ(0)';
+      el.style.willChange = 'transform';
+      el.style.webkitOverflowScrolling = 'touch';
+    });
+    // Also promote fixed elements (bottom nav, toasts, FAB) to their own
+    // compositor layers so they repaint at the correct expanded position.
+    document.querySelectorAll('.bottom-nav, #contactBtn, .toast, .sending-popup').forEach(function(el) {
+      el.style.transform = 'translateZ(0)';
+      el.style.willChange = 'transform';
+    });
+  });
+}
 
-// Hard reload — bypasses cache so the page starts completely fresh
+// Hard reload — uses Telegram's native reload to match the three-dot menu behaviour
 function hardReload() {
-  try { location.reload(true); } catch(e) { location.href = location.href; }
+  if (tg && tg.reload) {
+    tg.reload();
+  } else {
+    // Force a fresh navigation — bypasses WebView cache better than location.reload()
+    location.href = location.href.split('?')[0] + '?_r=' + Date.now();
+  }
 }
 
 var batches = [];
