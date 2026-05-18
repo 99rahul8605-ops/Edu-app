@@ -1051,16 +1051,15 @@ function switchNavTab(tab) {
 
   if (tab === 'home') {
     var homeEl = document.getElementById('page-home');
-    var accEl = document.getElementById('page-access');
-    // Reset access page
-    accEl.style.transition = 'none';
-    accEl.style.transform = 'translateX(100%)';
-    accEl.classList.remove('active');
-    // Fully reset home page — clear any leftover transform from goTo/goBack
-    homeEl.style.transition = 'none';
+    // Deactivate ALL pages instantly, then bring home forward cleanly
+    document.querySelectorAll('.page').forEach(function(p) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateX(100%)';
+      p.classList.remove('active');
+    });
     homeEl.style.transform = '';
     homeEl.classList.add('active');
-    // Reset pageStack so goTo works fresh
+    // Reset pageStack so goTo works fresh from batch list
     pageStack = ['home'];
     if (tg) tg.BackButton.hide();
   } else {
