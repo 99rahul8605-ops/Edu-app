@@ -704,16 +704,16 @@ async function load() {
 function renderBatches(list) {
   var el = document.getElementById('batchGrid');
   // Non-admin users: sirf public batches dikhao
-  var visible = isAdmin ? list : list.filter(b => b.isPublic);
+  var visible = isAdmin ? list : list.filter(b => b.isPublic === true);
   if (!visible || !visible.length) {
     el.innerHTML = '<div class="empty" style="grid-column:1/-1"><i class="ti ti-school"></i>No batches yet</div>';
     return;
   }
   el.innerHTML = visible.map(b => `
-    <div class="batch-card" onclick="openBatch('${b._id}')" style="${!b.isPublic ? 'opacity:0.6;border-style:dashed' : ''}">
+    <div class="batch-card" onclick="openBatch('${b._id}')" style="${b.isPublic !== true ? 'opacity:0.6;border-style:dashed' : ''}">
       <div class="batch-img" style="position:relative">
         ${b.pic ? `<img src="${b.pic}">` : '🎓'}
-        ${!b.isPublic ? '<div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;color:#aaa;display:flex;align-items:center;gap:4px"><i class="ti ti-lock" style="font-size:10px"></i>Private</div>' : ''}
+        ${b.isPublic !== true ? '<div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.7);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:700;color:#aaa;display:flex;align-items:center;gap:4px"><i class="ti ti-lock" style="font-size:10px"></i>Private</div>' : ''}
       </div>
       <div class="batch-body">
         <div class="batch-name">${b.name}</div>
@@ -899,11 +899,12 @@ async function addLecture() {
 function renderManage() {
   var html='';
   batches.forEach(b=>{
-    var pubLabel = b.isPublic
+    var pub = b.isPublic === true;
+    var pubLabel = pub
       ? '<i class="ti ti-eye-off" style="font-size:12px"></i> Unpublish'
       : '<i class="ti ti-send" style="font-size:12px"></i> Publish';
-    var pubClass = b.isPublic ? 'publish-btn public' : 'publish-btn';
-    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${b.isPublic ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
+    var pubClass = pub ? 'publish-btn public' : 'publish-btn';
+    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${pub ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
     b.subjects.forEach(s=>{
       html+=`<div class="manage-item" style="padding-left:24px"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${b.name} · ${s.chapters.length} ch</div></div><button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button></div>`;
       s.chapters.forEach(c=>{
