@@ -432,20 +432,16 @@ function goTo(pageId) {
   var cur = pageStack[pageStack.length-1];
   var curEl = document.getElementById('page-'+cur);
   var nextEl = document.getElementById('page-'+pageId);
-  // Next page ready karo (right mein)
   nextEl.style.transition = 'none';
   nextEl.style.transform = 'translateX(100%)';
   nextEl.classList.add('active');
-  // Force reflow
   nextEl.getBoundingClientRect();
-  // Animate both
   nextEl.style.transition = '';
   nextEl.style.transform = '';
   curEl.style.transform = 'translateX(-25%)';
   curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   pageStack.push(pageId);
-  if (tg) tg.BackButton.show();
-  // Cleanup
+  syncBackButton();
   setTimeout(() => {
     curEl.classList.remove('active');
     curEl.style.transform = '';
@@ -454,31 +450,56 @@ function goTo(pageId) {
 }
 
 function goBack() {
+  // If popup is open, close it first — don't navigate
+  var popup = document.getElementById('lecturePopup');
+  if (popup && popup.classList.contains('show')) {
+    closeLecturePopup();
+    return;
+  }
   if (pageStack.length <= 1) return;
   var cur = pageStack.pop();
   var prev = pageStack[pageStack.length-1];
   var curEl = document.getElementById('page-'+cur);
   var prevEl = document.getElementById('page-'+prev);
-  // Prev page ready karo (left mein)
   prevEl.style.transition = 'none';
   prevEl.style.transform = 'translateX(-25%)';
   prevEl.classList.add('active');
-  // Force reflow
   prevEl.getBoundingClientRect();
-  // Animate both
   prevEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   prevEl.style.transform = '';
   curEl.style.transition = 'transform 0.28s cubic-bezier(.4,0,.2,1)';
   curEl.style.transform = 'translateX(100%)';
-  if (pageStack.length <= 1 && tg) tg.BackButton.hide();
-  // Cleanup
+  syncBackButton();
   setTimeout(() => {
     curEl.classList.remove('active');
     curEl.style.transform = '';
     curEl.style.transition = '';
   }, 300);
 }
-if (tg) tg.BackButton.onClick(goBack);
+
+function syncBackButton() {
+  if (!tg) return;
+  // Always re-register the handler to survive app focus loss
+  tg.BackButton.offClick(goBack);
+  tg.BackButton.onClick(goBack);
+  if (pageStack.length > 1) {
+    tg.BackButton.show();
+  } else {
+    tg.BackButton.hide();
+  }
+}
+
+// Also re-sync when app regains focus (user comes back from bot)
+if (tg) {
+  tg.onEvent('activated', function() {
+    syncBackButton();
+    // Close popup cleanly if it was open when user left
+    var popup = document.getElementById('lecturePopup');
+    if (popup && popup.classList.contains('show')) {
+      closeLecturePopup();
+    }
+  });
+}
 
 // ── Open Batch ────────────────────────────────────────────────────────────────
 function openBatch(bid) {
@@ -616,8 +637,8 @@ function openLink(url, type) {
     toast('Link not available!', 'error');
     return;
   }
-  // Close lecture popup first
-  closeLecturePopup();
+  // Open link first — THEN close popup after a small delay
+  // This prevents the popup close animation from conflicting with app-switch
   if (tg) {
     tg.openLink(url, { try_instant_view: false });
   } else {
@@ -629,6 +650,8 @@ function openLink(url, type) {
     a.click();
     document.body.removeChild(a);
   }
+  // Close popup after a brief delay so transition doesn't cause blink
+  setTimeout(function() { closeLecturePopup(); }, 80);
   showSendingPopup(type);
 }
 
