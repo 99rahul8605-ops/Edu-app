@@ -430,6 +430,7 @@ var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
 var batches = [];
+var _popupLectures = []; // stores lectures for popup reference by index
 var isAdmin = false;
 var pageStack = ['home'];
 var picBase64 = '';
@@ -564,31 +565,37 @@ function openChapter(bid, sid, cid) {
         <i class="ti ti-chevron-right row-arrow"></i>
       </div>`).join('');
 
-    // Direct lectures bhi hain to alag section mein dikhao
+    // Direct lectures also shown in separate section
     if (c.lectures && c.lectures.length > 0) {
       html += `<div style="padding:14px 0 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase">OTHER LECTURES</div>`;
-      html += c.lectures.map((l,i) => `
-        <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
+      html += c.lectures.map((l,i) => {
+        var idx = _popupLectures.push(l) - 1;
+        return `
+        <div class="lec-row" onclick="showLecturePopup(${idx})">
           <div class="lec-row-top">
             <div class="lec-num">${i+1}</div>
             <div class="lec-name">${l.name}</div>
             <i class="ti ti-chevron-right row-arrow"></i>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
   } else {
     // No units — direct lectures
     document.getElementById('unitPageSub').textContent = c.lectures.length + ' lectures';
     document.getElementById('unitSecLabel').textContent = 'LECTURES';
     html = !c.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
-      c.lectures.map((l,i) => `
-        <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
+      c.lectures.map((l,i) => {
+        var idx = _popupLectures.push(l) - 1;
+        return `
+        <div class="lec-row" onclick="showLecturePopup(${idx})">
           <div class="lec-row-top">
             <div class="lec-num">${i+1}</div>
             <div class="lec-name">${l.name}</div>
             <i class="ti ti-chevron-right row-arrow"></i>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
   }
   document.getElementById('unitList').innerHTML = html;
   goTo('units');
@@ -604,14 +611,17 @@ function openUnit(bid, sid, cid, uid) {
   document.getElementById('lecPageTitle').textContent = u.name;
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
   document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
-    u.lectures.map((l,i) => `
-      <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
+    u.lectures.map((l,i) => {
+      var idx = _popupLectures.push(l) - 1;
+      return `
+      <div class="lec-row" onclick="showLecturePopup(${idx})">
         <div class="lec-row-top">
           <div class="lec-num">${i+1}</div>
           <div class="lec-name">${l.name}</div>
           <i class="ti ti-chevron-right row-arrow"></i>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   goTo('lectures');
 }
 
@@ -1009,15 +1019,17 @@ function switchNavTab(tab) {
   document.getElementById('navAccess').classList.toggle('active', tab === 'access');
 
   if (tab === 'home') {
-    // home page active karo, access page hatao
     var homeEl = document.getElementById('page-home');
     var accEl = document.getElementById('page-access');
+    // Reset access page
     accEl.style.transition = 'none';
     accEl.style.transform = 'translateX(100%)';
     accEl.classList.remove('active');
-    homeEl.classList.add('active');
+    // Fully reset home page — clear any leftover transform from goTo/goBack
+    homeEl.style.transition = 'none';
     homeEl.style.transform = '';
-    // clear pageStack to home only
+    homeEl.classList.add('active');
+    // Reset pageStack so goTo works fresh
     pageStack = ['home'];
     if (tg) tg.BackButton.hide();
   } else {
@@ -1303,7 +1315,9 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
 </style>
 
 <script>
-function showLecturePopup(lecture) {
+function showLecturePopup(idx) {
+  var lecture = _popupLectures[idx];
+  if (!lecture) return;
   document.getElementById('popupLecName').textContent = lecture.name;
   var btns = '';
   if (lecture.link) {
