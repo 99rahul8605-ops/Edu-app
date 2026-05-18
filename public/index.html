@@ -592,10 +592,15 @@ function openChapter(bid, sid, cid) {
       html += c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row">
           <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+          <div class="lec-info">
+            <div class="lec-name">${l.name}</div>
+            <div class="lec-mini-btns">
+              <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+              ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+            </div>
+          </div>
         </div>`;
       }).join('');
     }
@@ -607,10 +612,15 @@ function openChapter(bid, sid, cid) {
       c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row">
           <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+          <div class="lec-info">
+            <div class="lec-name">${l.name}</div>
+            <div class="lec-mini-btns">
+              <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+              ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+            </div>
+          </div>
         </div>`;
       }).join('');
   }
@@ -632,10 +642,15 @@ function openUnit(bid, sid, cid, uid) {
     u.lectures.map((l,i) => {
       var idx = _popupLectures.push(l) - 1;
       return `
-      <div class="lec-row" onclick="showLecturePopup(${idx})">
+      <div class="lec-row">
         <div class="lec-num">${i+1}</div>
-        <div class="lec-name">${l.name}</div>
-        <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+        <div class="lec-info">
+          <div class="lec-name">${l.name}</div>
+          <div class="lec-mini-btns">
+            <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+            ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+          </div>
+        </div>
       </div>`;
     }).join('');
   goTo('lectures');
@@ -1422,27 +1437,41 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
 .lec-row {
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);display:flex;align-items:center;
-  padding:13px 14px;gap:12px;cursor:pointer;
+  padding:12px 14px;gap:12px;
   transition:background 0.15s,border-color 0.15s;
   will-change:transform;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
   transform:translateZ(0);
 }
-.lec-row:active{background:var(--surface2);border-color:var(--accent)}
 .lec-num {
   width:36px;height:36px;border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;align-self:flex-start;margin-top:2px;
 }
-.lec-name{flex:1;font-size:14px;font-weight:500;line-height:1.35}
-.lec-play-icon {
-  width:30px;height:30px;border-radius:50%;
-  background:var(--surface2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+.lec-info{flex:1;min-width:0}
+.lec-name{font-size:14px;font-weight:500;line-height:1.35}
+.lec-mini-btns{display:flex;gap:7px;margin-top:7px;flex-wrap:wrap}
+.lec-mini-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 11px;border-radius:20px;border:none;
+  font-size:11px;font-weight:600;cursor:pointer;
+  transition:opacity 0.15s;
+  -webkit-tap-highlight-color:transparent;
 }
-.lec-play-icon i{font-size:13px;color:var(--accent)}
+.lec-mini-btn:active{opacity:0.7}
+.lec-mini-watch{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;
+}
+.lec-mini-notes{
+  background:var(--surface2);
+  border:1px solid var(--border) !important;
+  color:var(--text);
+}
+body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
+.lec-mini-btn i{font-size:11px}
 
 /* ── Contact Button ───────────────────────────── */
 #contactBtn{position:fixed;bottom:80px;right:16px;z-index:300;cursor:pointer;user-select:none}
