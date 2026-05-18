@@ -213,6 +213,24 @@ async function startBot() {
   const BOT_USERNAME = me.username;
   console.log(`Bot started: @${BOT_USERNAME}`);
 
+  // ── Set Web App menu button ────────────────────────────────────────────────
+  try {
+    await fetch(`https://api.telegram.org/bot${TOKEN}/setChatMenuButton`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        menu_button: {
+          type: "web_app",
+          text: "Open EduBot",
+          web_app: { url: WEB_URL },
+        },
+      }),
+    });
+    console.log("Menu button set:", WEB_URL);
+  } catch (err) {
+    console.warn("Menu button set failed:", err.message);
+  }
+
   await recoverPendingDeletes(bot);
 
   // ── /start ──────────────────────────────────────────────────────────────────
