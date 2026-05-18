@@ -630,29 +630,47 @@ function openUnit(bid, sid, cid, uid) {
 }
 
 function openLink(url, type) {
+  if (!url || url.trim() === '') {
+    toast('Link available nahi hai!', 'error');
+    return;
+  }
   if (tg) {
     _linkJustOpened = true;
     document.body.style.transition = 'opacity 0.15s ease';
     document.body.style.opacity = '0';
 
-    // Fallback — agar minimize nahi hua to 1.5s baad wapas dikhao
+    // Fallback — 2s baad wapas dikhao no matter what
     var fallbackTimer = setTimeout(function() {
       _linkJustOpened = false;
       document.body.style.transition = 'opacity 0.22s ease';
       document.body.style.opacity = '1';
-    }, 1500);
+    }, 2000);
 
-    // visibilitychange pe fallback cancel karo (minimize hua)
-    var onHide = function(e) {
-      if (document.visibilityState === 'hidden') {
+    // visibilitychange — sirf hidden pe fallback cancel karo
+    var onVisible = function() {
+      if (document.visibilityState === 'visible') {
         clearTimeout(fallbackTimer);
-        document.removeEventListener('visibilitychange', onHide);
+        document.removeEventListener('visibilitychange', onVisible);
+        _linkJustOpened = false;
+        setTimeout(function() {
+          document.body.style.transition = 'opacity 0.22s ease';
+          document.body.style.opacity = '1';
+        }, 80);
       }
     };
-    document.addEventListener('visibilitychange', onHide);
+    document.addEventListener('visibilitychange', onVisible);
 
     setTimeout(function() {
-      tg.openLink(url, { try_instant_view: false });
+      try {
+        tg.openLink(url, { try_instant_view: false });
+      } catch(e) {
+        // Link open nahi hua — turant wapas dikhao
+        clearTimeout(fallbackTimer);
+        document.removeEventListener('visibilitychange', onVisible);
+        _linkJustOpened = false;
+        document.body.style.opacity = '1';
+        toast('Link open nahi hua!', 'error');
+      }
     }, 120);
   } else {
     var a = document.createElement('a');
