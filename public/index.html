@@ -302,6 +302,20 @@ body.ready{transition:none}
   </div>
 </div>
 
+<!-- PAGE: Lecture Detail -->
+<div class="page" id="page-lecture-detail">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1;min-width:0">
+      <div class="topbar-title" id="lecDetailTitle">Lecture</div>
+      <div class="topbar-sub" id="lecDetailSub"></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <div id="lecDetailContent"></div>
+  </div>
+</div>
+
 <!-- Admin Modal -->
 <div class="modal-overlay" id="adminModal" onclick="closeModalOutside(event)">
   <div class="modal">
@@ -450,12 +464,6 @@ function goTo(pageId) {
 }
 
 function goBack() {
-  // If popup is open, close it first — don't navigate
-  var popup = document.getElementById('lecturePopup');
-  if (popup && popup.classList.contains('show')) {
-    closeLecturePopup();
-    return;
-  }
   if (pageStack.length <= 1) return;
   var cur = pageStack.pop();
   var prev = pageStack[pageStack.length-1];
@@ -479,7 +487,6 @@ function goBack() {
 
 function syncBackButton() {
   if (!tg) return;
-  // Always re-register the handler to survive app focus loss
   tg.BackButton.offClick(goBack);
   tg.BackButton.onClick(goBack);
   if (pageStack.length > 1) {
@@ -489,15 +496,10 @@ function syncBackButton() {
   }
 }
 
-// Also re-sync when app regains focus (user comes back from bot)
+// Re-sync back button when app regains focus after openLink
 if (tg) {
   tg.onEvent('activated', function() {
     syncBackButton();
-    // Close popup cleanly if it was open when user left
-    var popup = document.getElementById('lecturePopup');
-    if (popup && popup.classList.contains('show')) {
-      closeLecturePopup();
-    }
   });
 }
 
@@ -558,10 +560,10 @@ function openChapter(bid, sid, cid) {
   var s = b && b.subjects.find(x => x._id === sid);
   var c = s && s.chapters.find(x => x._id === cid);
   if (!c) return;
+  _popupLectures = []; // Reset on every chapter open
   var color = s.color;
   document.getElementById('unitPageTitle').textContent = c.name;
 
-  // Dono dikhao — units bhi, direct lectures bhi
   var html = '';
 
   if (c.units && c.units.length > 0) {
@@ -584,7 +586,7 @@ function openChapter(bid, sid, cid) {
       html += c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row" onclick="openLectureDetail(${idx})">
           <div class="lec-num">${i+1}</div>
           <div class="lec-name">${l.name}</div>
           <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
@@ -599,7 +601,7 @@ function openChapter(bid, sid, cid) {
       c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row" onclick="openLectureDetail(${idx})">
           <div class="lec-num">${i+1}</div>
           <div class="lec-name">${l.name}</div>
           <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
@@ -617,13 +619,14 @@ function openUnit(bid, sid, cid, uid) {
   var c = s && s.chapters.find(x => x._id === cid);
   var u = c && c.units.find(x => x._id === uid);
   if (!u) return;
+  _popupLectures = []; // Reset on every unit open
   document.getElementById('lecPageTitle').textContent = u.name;
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
   document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
     u.lectures.map((l,i) => {
       var idx = _popupLectures.push(l) - 1;
       return `
-      <div class="lec-row" onclick="showLecturePopup(${idx})">
+      <div class="lec-row" onclick="openLectureDetail(${idx})">
         <div class="lec-num">${i+1}</div>
         <div class="lec-name">${l.name}</div>
         <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
@@ -637,8 +640,6 @@ function openLink(url, type) {
     toast('Link not available!', 'error');
     return;
   }
-  // Open link first — THEN close popup after a small delay
-  // This prevents the popup close animation from conflicting with app-switch
   if (tg) {
     tg.openLink(url, { try_instant_view: false });
   } else {
@@ -650,8 +651,6 @@ function openLink(url, type) {
     a.click();
     document.body.removeChild(a);
   }
-  // Close popup after a brief delay so transition doesn't cause blink
-  setTimeout(function() { closeLecturePopup(); }, 80);
   showSendingPopup(type);
 }
 
@@ -1276,118 +1275,9 @@ async function init() {
 init();
 
 </script>
-<!-- Lecture Popup -->
-<div id="lecturePopup" onclick="closeLecturePopupOutside(event)">
-  <div class="lec-popup-sheet">
-    <div class="lec-popup-header">
-      <div class="lec-popup-handle"></div>
-      <div class="lec-popup-icon-wrap"><i class="ti ti-player-play-filled"></i></div>
-      <div class="lec-popup-title" id="popupLecName">Lecture</div>
-      <button class="lec-popup-close" onclick="closeLecturePopup()"><i class="ti ti-x"></i></button>
-    </div>
-    <div class="lec-popup-body" id="popupButtons"></div>
-  </div>
-</div>
 
 <style>
-/* Light mode fixes */
-body.light-mode .modal{background:#fff;color:var(--text)}
-body.light-mode .modal-title{color:var(--text)}
-body.light-mode .form-input,body.light-mode .form-select{background:var(--surface2);color:var(--text);border-color:var(--border)}
-body.light-mode .form-label{color:var(--text2)}
-body.light-mode .manage-item{background:var(--surface2)}
-body.light-mode .manage-item-name{color:var(--text)}
-body.light-mode .manage-item-sub{color:var(--text2)}
-body.light-mode .tab-btn{color:var(--text2);border-color:var(--border)}
-body.light-mode .row{background:var(--surface);border-color:var(--border)}
-body.light-mode .row-name{color:var(--text)}
-body.light-mode .chap-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .chap-name{color:var(--text)}
-body.light-mode .unit-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .lec-row{background:var(--surface);border-color:var(--border)}
-body.light-mode .lec-name{color:var(--text)}
-body.light-mode .batch-card{background:var(--surface);border-color:var(--border)}
-body.light-mode .batch-name{color:var(--text)}
-body.light-mode .search-input{background:var(--surface2);color:var(--text);border-color:var(--border)}
-body.light-mode .search-input::placeholder{color:var(--text3)}
-body.light-mode .nav-tab{color:var(--text3)}
-body.light-mode .nav-tab.active{color:var(--accent)}
-body.light-mode .hero{background:var(--surface);border-color:var(--border)}
-body.light-mode .hero-name{color:var(--text)}
-body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
-body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
-
-/* ── Lecture Popup ──────────────────────────────── */
-#lecturePopup {
-  display:flex;
-  position:fixed;inset:0;
-  background:rgba(0,0,0,0);
-  z-index:500;
-  align-items:flex-end;justify-content:center;
-  pointer-events:none;
-  transition:background 0.3s ease;
-}
-#lecturePopup.show {
-  background:rgba(0,0,0,0.72);
-  pointer-events:all;
-}
-.lec-popup-sheet {
-  width:100%;max-width:480px;
-  background:var(--surface);
-  border-radius:24px 24px 0 0;
-  overflow:hidden;
-  transform:translateY(100%);
-  transition:transform 0.35s cubic-bezier(.32,1.1,.58,1);
-  will-change:transform;
-}
-#lecturePopup.show .lec-popup-sheet { transform:translateY(0); }
-.lec-popup-header {
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  padding:20px 18px 18px;position:relative;
-}
-.lec-popup-handle {
-  width:36px;height:4px;background:rgba(255,255,255,0.35);
-  border-radius:2px;margin:0 auto 14px;
-}
-.lec-popup-icon-wrap {
-  width:44px;height:44px;background:rgba(255,255,255,0.2);
-  border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;
-}
-.lec-popup-icon-wrap i{font-size:22px;color:#fff}
-.lec-popup-title {
-  font-size:15px;font-weight:700;color:#fff;line-height:1.35;padding-right:36px;
-}
-.lec-popup-close {
-  position:absolute;top:16px;right:14px;width:30px;height:30px;
-  background:rgba(255,255,255,0.2);border:none;border-radius:50%;
-  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;
-}
-.lec-popup-body { padding:16px 16px 28px;display:flex;flex-direction:column;gap:10px; }
-.popup-lec-btn {
-  width:100%;display:flex;align-items:center;gap:14px;
-  padding:14px 16px;border-radius:14px;border:none;
-  cursor:pointer;text-align:left;
-  transition:transform 0.12s,opacity 0.12s;
-}
-.popup-lec-btn:active{transform:scale(0.97);opacity:0.85}
-.popup-lec-btn-watch{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
-.popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border) !important;color:var(--text)}
-body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
-.popup-lec-btn-icon {
-  width:38px;height:38px;border-radius:10px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.popup-lec-btn-watch .popup-lec-btn-icon{background:rgba(255,255,255,0.2)}
-.popup-lec-btn-notes .popup-lec-btn-icon{background:var(--surface3)}
-.popup-lec-btn-icon i{font-size:19px}
-.popup-lec-btn-watch .popup-lec-btn-icon i{color:#fff}
-.popup-lec-btn-notes .popup-lec-btn-icon i{color:var(--accent)}
-.popup-lec-btn-text{flex:1}
-.popup-lec-btn-label{font-size:14px;font-weight:700;display:block}
-.popup-lec-btn-sub{font-size:11px;opacity:0.7;margin-top:2px;display:block}
-.popup-lec-btn-arrow{font-size:16px;opacity:0.4}
-
-/* ── Lecture row redesign ─────────────────────── */
+/* ── Lecture row ──────────────────────────────── */
 .lec-row {
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);display:flex;align-items:center;
@@ -1487,61 +1377,152 @@ body.light-mode .hero-name{color:var(--text)}
 body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
 body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
 
-/* Popup lecture buttons - compact */
-.popup-lec-btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:9px 16px;border-radius:20px;border:none;
-  font-size:12px;font-weight:600;cursor:pointer;
+/* ── Lecture Detail Page ──────────────────────── */
+.lec-detail-hero {
+  margin: 20px 16px 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 20px;
+  padding: 28px 20px 24px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
 }
-.popup-lec-btn-watch{background:var(--accent);color:#fff}
-.popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
-body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
-#popupButtons{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.lec-detail-hero::before {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 120px; height: 120px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50%;
+}
+.lec-detail-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -20px; left: -20px;
+  width: 80px; height: 80px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+}
+.lec-detail-icon-wrap {
+  width: 64px; height: 64px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+  position: relative; z-index: 1;
+}
+.lec-detail-icon-wrap i { font-size: 28px; color: #fff; }
+.lec-detail-name {
+  font-size: 17px; font-weight: 700; color: #fff;
+  line-height: 1.4; position: relative; z-index: 1;
+}
+.lec-detail-badge-row {
+  display: flex; gap: 8px; justify-content: center;
+  margin-top: 12px; position: relative; z-index: 1;
+}
+.lec-detail-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.2);
+  color: #fff; font-size: 11px; font-weight: 600;
+  padding: 4px 10px; border-radius: 20px;
+}
+.lec-detail-badge-notes { background: rgba(255,255,255,0.15); }
+.lec-detail-actions {
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.lec-detail-btn {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  padding: 16px; border-radius: 16px; border: none;
+  cursor: pointer; text-align: left;
+  transition: transform 0.12s, opacity 0.12s, box-shadow 0.15s;
+}
+.lec-detail-btn:active { transform: scale(0.97); opacity: 0.9; }
+.lec-detail-btn-watch {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(79,142,247,0.35);
+}
+.lec-detail-btn-notes {
+  background: var(--surface);
+  border: 1.5px solid var(--border) !important;
+  color: var(--text);
+}
+body.light-mode .lec-detail-btn-notes { background: var(--surface); }
+.lec-detail-btn-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.lec-detail-btn-watch .lec-detail-btn-icon { background: rgba(255,255,255,0.2); }
+.lec-detail-btn-notes .lec-detail-btn-icon { background: var(--surface2); }
+.lec-detail-btn-icon i { font-size: 20px; }
+.lec-detail-btn-watch .lec-detail-btn-icon i { color: #fff; }
+.lec-detail-btn-notes .lec-detail-btn-icon i { color: var(--accent); }
+.lec-detail-btn-text { flex: 1; }
+.lec-detail-btn-label { font-size: 15px; font-weight: 700; display: block; }
+.lec-detail-btn-sub { font-size: 12px; opacity: 0.65; margin-top: 2px; display: block; }
+.lec-detail-empty {
+  text-align: center; padding: 30px 20px;
+  color: var(--text2); font-size: 13px;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.lec-detail-empty i { font-size: 36px; color: var(--text3); }
 </style>
 
 <script>
-function showLecturePopup(idx) {
+function openLectureDetail(idx) {
   var lecture = _popupLectures[idx];
   if (!lecture) return;
-  var popup = document.getElementById('lecturePopup');
-  document.getElementById('popupLecName').textContent = lecture.name;
-  var btns = '';
-  if (lecture.link) {
-    btns += `<button class="popup-lec-btn popup-lec-btn-watch" onclick="openLink('${lecture.link}')">
-      <div class="popup-lec-btn-icon"><i class="ti ti-player-play-filled"></i></div>
-      <div class="popup-lec-btn-text">
-        <span class="popup-lec-btn-label">Watch Lecture</span>
-        <span class="popup-lec-btn-sub">Opens in Telegram</span>
+
+  document.getElementById('lecDetailTitle').textContent = lecture.name;
+  document.getElementById('lecDetailSub').textContent = (lecture.link ? '▶ Video' : '') + (lecture.link && lecture.notes ? ' · ' : '') + (lecture.notes ? '📄 Notes' : '');
+
+  var html = `
+    <div class="lec-detail-hero">
+      <div class="lec-detail-icon-wrap">
+        <i class="ti ti-player-play-filled"></i>
       </div>
-      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
-    </button>`;
+      <div class="lec-detail-name">${lecture.name}</div>
+      <div class="lec-detail-badge-row">
+        ${lecture.link ? '<span class="lec-detail-badge"><i class="ti ti-video"></i> Video</span>' : ''}
+        ${lecture.notes ? '<span class="lec-detail-badge lec-detail-badge-notes"><i class="ti ti-file-text"></i> Notes</span>' : ''}
+      </div>
+    </div>
+    <div class="lec-detail-actions">`;
+
+  if (lecture.link) {
+    html += `
+      <button class="lec-detail-btn lec-detail-btn-watch" onclick="openLink('${lecture.link}')">
+        <div class="lec-detail-btn-icon"><i class="ti ti-player-play-filled"></i></div>
+        <div class="lec-detail-btn-text">
+          <span class="lec-detail-btn-label">Watch Lecture</span>
+          <span class="lec-detail-btn-sub">Opens in Telegram</span>
+        </div>
+        <i class="ti ti-arrow-right" style="font-size:18px;opacity:0.7"></i>
+      </button>`;
   }
   if (lecture.notes) {
-    btns += `<button class="popup-lec-btn popup-lec-btn-notes" onclick="openLink('${lecture.notes}','notes')">
-      <div class="popup-lec-btn-icon"><i class="ti ti-file-text"></i></div>
-      <div class="popup-lec-btn-text">
-        <span class="popup-lec-btn-label">Class Notes</span>
-        <span class="popup-lec-btn-sub">PDF / Document</span>
-      </div>
-      <i class="ti ti-chevron-right popup-lec-btn-arrow"></i>
-    </button>`;
+    html += `
+      <button class="lec-detail-btn lec-detail-btn-notes" onclick="openLink('${lecture.notes}','notes')">
+        <div class="lec-detail-btn-icon"><i class="ti ti-file-text"></i></div>
+        <div class="lec-detail-btn-text">
+          <span class="lec-detail-btn-label">Class Notes</span>
+          <span class="lec-detail-btn-sub">PDF / Document</span>
+        </div>
+        <i class="ti ti-arrow-right" style="font-size:18px;opacity:0.5"></i>
+      </button>`;
   }
   if (!lecture.link && !lecture.notes) {
-    btns = '<div style="text-align:center;padding:16px 0;color:var(--text2);font-size:13px"><i class="ti ti-link-off" style="font-size:28px;display:block;margin-bottom:8px;color:var(--text3)"></i>No links available</div>';
+    html += `<div class="lec-detail-empty"><i class="ti ti-link-off"></i><span>No links available</span></div>`;
   }
-  document.getElementById('popupButtons').innerHTML = btns;
-  popup.classList.add('show');
-  document.body.style.overflow = 'hidden';
+  html += `</div>`;
+
+  document.getElementById('lecDetailContent').innerHTML = html;
+  goTo('lecture-detail');
 }
 
-function closeLecturePopup() {
-  document.getElementById('lecturePopup').classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-function closeLecturePopupOutside(e) {
-  if (e.target.id === 'lecturePopup') closeLecturePopup();
-}
+// Keep popup functions as no-ops so nothing breaks
+function closeLecturePopup() {}
+function closeLecturePopupOutside() {}
 </script>
 
 <!-- Contact Floating Button -->
