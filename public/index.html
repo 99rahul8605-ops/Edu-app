@@ -568,31 +568,25 @@ function openChapter(bid, sid, cid) {
     if (c.lectures && c.lectures.length > 0) {
       html += `<div style="padding:14px 0 8px;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase">OTHER LECTURES</div>`;
       html += c.lectures.map((l,i) => `
-        <div class="lec-row">
+        <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
           <div class="lec-row-top">
             <div class="lec-num">${i+1}</div>
             <div class="lec-name">${l.name}</div>
-          </div>
-          <div class="lec-btns">
-            <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
-            ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+            <i class="ti ti-chevron-right row-arrow"></i>
           </div>
         </div>`).join('');
     }
   } else {
-    // Units nahi — seedhe lectures
+    // No units — direct lectures
     document.getElementById('unitPageSub').textContent = c.lectures.length + ' lectures';
     document.getElementById('unitSecLabel').textContent = 'LECTURES';
     html = !c.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
       c.lectures.map((l,i) => `
-        <div class="lec-row">
+        <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
           <div class="lec-row-top">
             <div class="lec-num">${i+1}</div>
             <div class="lec-name">${l.name}</div>
-          </div>
-          <div class="lec-btns">
-            <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
-            ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+            <i class="ti ti-chevron-right row-arrow"></i>
           </div>
         </div>`).join('');
   }
@@ -611,14 +605,11 @@ function openUnit(bid, sid, cid, uid) {
   document.getElementById('lecPageSub').textContent = u.lectures.length + ' lectures';
   document.getElementById('lectureList').innerHTML = !u.lectures.length ? '<div class="empty"><i class="ti ti-video"></i>No lectures yet</div>' :
     u.lectures.map((l,i) => `
-      <div class="lec-row">
+      <div class="lec-row" onclick="showLecturePopup(${JSON.stringify(l)})">
         <div class="lec-row-top">
           <div class="lec-num">${i+1}</div>
           <div class="lec-name">${l.name}</div>
-        </div>
-        <div class="lec-btns">
-          <button class="lec-btn lec-btn-watch" onclick="openLink('${l.link}')"><i class="ti ti-player-play"></i> Lecture</button>
-          ${l.notes ? `<button class="lec-btn lec-btn-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-file-text"></i> Notes</button>` : ''}
+          <i class="ti ti-chevron-right row-arrow"></i>
         </div>
       </div>`).join('');
   goTo('lectures');
@@ -629,6 +620,8 @@ function openLink(url, type) {
     toast('Link not available!', 'error');
     return;
   }
+  // Close lecture popup first
+  closeLecturePopup();
   if (tg) {
     tg.openLink(url, { try_instant_view: false });
   } else {
@@ -1260,6 +1253,82 @@ async function init() {
 init();
 
 </script>
+<!-- Lecture Popup Modal -->
+<div class="modal-overlay" id="lecturePopup" onclick="closeLecturePopupOutside(event)">
+  <div class="modal" style="padding-bottom:24px">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeLecturePopup()"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-player-play"></i><span id="popupLecName">Lecture</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px" id="popupButtons"></div>
+  </div>
+</div>
+
+<style>
+/* Light mode fixes */
+body.light-mode .modal{background:#fff;color:var(--text)}
+body.light-mode .modal-title{color:var(--text)}
+body.light-mode .form-input,body.light-mode .form-select{background:var(--surface2);color:var(--text);border-color:var(--border)}
+body.light-mode .form-label{color:var(--text2)}
+body.light-mode .manage-item{background:var(--surface2)}
+body.light-mode .manage-item-name{color:var(--text)}
+body.light-mode .manage-item-sub{color:var(--text2)}
+body.light-mode .tab-btn{color:var(--text2);border-color:var(--border)}
+body.light-mode .row{background:var(--surface);border-color:var(--border)}
+body.light-mode .row-name{color:var(--text)}
+body.light-mode .chap-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .chap-name{color:var(--text)}
+body.light-mode .unit-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .lec-row{background:var(--surface);border-color:var(--border)}
+body.light-mode .lec-name{color:var(--text)}
+body.light-mode .batch-card{background:var(--surface);border-color:var(--border)}
+body.light-mode .batch-name{color:var(--text)}
+body.light-mode .search-input{background:var(--surface2);color:var(--text);border-color:var(--border)}
+body.light-mode .search-input::placeholder{color:var(--text3)}
+body.light-mode .nav-tab{color:var(--text3)}
+body.light-mode .nav-tab.active{color:var(--accent)}
+body.light-mode .hero{background:var(--surface);border-color:var(--border)}
+body.light-mode .hero-name{color:var(--text)}
+body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
+body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
+
+/* Popup lecture buttons */
+.popup-lec-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 16px;border-radius:var(--radius-sm);border:none;
+  font-size:14px;font-weight:600;cursor:pointer;
+}
+.popup-lec-btn-watch{background:var(--accent);color:#fff}
+.popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
+body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
+</style>
+
+<script>
+function showLecturePopup(lecture) {
+  document.getElementById('popupLecName').textContent = lecture.name;
+  var btns = '';
+  if (lecture.link) {
+    btns += `<button class="popup-lec-btn popup-lec-btn-watch" onclick="openLink('${lecture.link}')">
+      <i class="ti ti-player-play"></i> Watch Lecture
+    </button>`;
+  }
+  if (lecture.notes) {
+    btns += `<button class="popup-lec-btn popup-lec-btn-notes" onclick="openLink('${lecture.notes}','notes')">
+      <i class="ti ti-file-text"></i> Class Notes
+    </button>`;
+  }
+  document.getElementById('popupButtons').innerHTML = btns;
+  document.getElementById('lecturePopup').classList.add('show');
+}
+
+function closeLecturePopup() {
+  document.getElementById('lecturePopup').classList.remove('show');
+}
+
+function closeLecturePopupOutside(e) {
+  if (e.target.id === 'lecturePopup') closeLecturePopup();
+}
+</script>
+
 <!-- Contact Floating Button -->
 <div id="contactBtn" onclick="handleContact()">
   <div id="contactInner">
