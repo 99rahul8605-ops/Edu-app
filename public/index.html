@@ -32,8 +32,9 @@ body.light-mode{
 .toggle-switch input:checked + .toggle-slider{background:var(--accent)}
 .toggle-switch input:checked + .toggle-slider:before{content:'🌙';left:18px}
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none;opacity:0}
-body.ready{opacity:1;transition:none}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
+body.fadein{transition:none}
+body.ready{transition:none}
 
 .page{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);z-index:10;overflow:hidden;will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .page.active{transform:translateX(0);z-index:11}
@@ -1257,10 +1258,12 @@ async function init() {
   // Home timer bar
   updateHomeTimer();
   if (hasAccess()) startCountdown();
-  // Show page — fade in once, then remove transition so nothing blinks later
-  document.body.style.transition = 'opacity 0.18s ease';
-  document.body.classList.add('ready');
-  setTimeout(function() { document.body.style.transition = 'none'; }, 200);
+  // Fade in once using class, then switch to ready (no transition) so nothing blinks later
+  document.body.classList.add('fadein');
+  setTimeout(function() {
+    document.body.classList.remove('fadein');
+    document.body.classList.add('ready');
+  }, 200);
 }
 init();
 
@@ -1271,7 +1274,7 @@ init();
     <div class="modal-handle"></div>
     <button class="modal-close" onclick="closeLecturePopup()"><i class="ti ti-x"></i></button>
     <div class="modal-title"><i class="ti ti-player-play"></i><span id="popupLecName">Lecture</span></div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px" id="popupButtons"></div>
+    <div id="popupButtons"></div>
   </div>
 </div>
 
@@ -1303,15 +1306,16 @@ body.light-mode .hero-name{color:var(--text)}
 body.light-mode .access-card{background:var(--surface);border-color:var(--border)}
 body.light-mode .modal-overlay{background:rgba(0,0,0,0.5)}
 
-/* Popup lecture buttons */
+/* Popup lecture buttons - compact */
 .popup-lec-btn{
-  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:13px 16px;border-radius:var(--radius-sm);border:none;
-  font-size:14px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 16px;border-radius:20px;border:none;
+  font-size:12px;font-weight:600;cursor:pointer;
 }
 .popup-lec-btn-watch{background:var(--accent);color:#fff}
 .popup-lec-btn-notes{background:var(--surface2);border:1px solid var(--border);color:var(--text)}
 body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text)}
+#popupButtons{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 </style>
 
 <script>
