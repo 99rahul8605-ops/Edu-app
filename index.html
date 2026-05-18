@@ -31,8 +31,8 @@ body.light-mode{
 .toggle-slider:before{content:'☀️';position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:11px;line-height:1;transition:left 0.25s}
 .toggle-switch input:checked + .toggle-slider{background:var(--accent)}
 .toggle-switch input:checked + .toggle-slider:before{content:'🌙';left:18px}
-html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
+html{position:fixed;inset:0;overflow:hidden}
+body{position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;user-select:none}
 body.fadein{transition:none}
 body.ready{transition:none}
 
@@ -226,6 +226,19 @@ body.ready{transition:none}
       <input class="search-input" id="searchInput" placeholder="Search batches..." oninput="handleSearch(this.value)">
     </div>
   </div>
+  <!-- Flicker Notice Banner -->
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <!-- Home Access Timer Bar -->
   <div id="homeTimerBar" style="display:none;background:linear-gradient(90deg,#0f2a1a,#0a1f2e);border-bottom:1px solid var(--border);padding:8px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
     <div style="display:flex;align-items:center;gap:8px">
@@ -259,6 +272,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="subjPageTitle"></div><div class="topbar-sub" id="subjPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="hero" id="batchHero"></div>
     <div class="sec-label">Subjects</div>
@@ -272,6 +297,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="chapPageTitle"></div><div class="topbar-sub" id="chapPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="sec-label">Chapters</div>
     <div class="list" id="chapterList"></div>
@@ -284,6 +321,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="unitPageTitle"></div><div class="topbar-sub" id="unitPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="sec-label" id="unitSecLabel">Content</div>
     <div class="list" id="unitList"></div>
@@ -295,6 +344,18 @@ body.ready{transition:none}
   <div class="topbar">
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="lecPageTitle"></div><div class="topbar-sub" id="lecPageSub"></div></div>
+  </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
   </div>
   <div class="page-body">
     <div class="sec-label">Lectures</div>
@@ -310,6 +371,18 @@ body.ready{transition:none}
       <div class="topbar-title" id="lecDetailTitle">Lecture</div>
       <div class="topbar-sub" id="lecDetailSub"></div>
     </div>
+  </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
   </div>
   <div class="page-body">
     <div id="lecDetailContent"></div>
@@ -403,6 +476,18 @@ body.ready{transition:none}
       <div><div style="font-size:15px;font-weight:700">Access</div><div style="font-size:10px;color:var(--text2)">Watch ad to unlock</div></div>
     </div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="access-page-wrap">
       <div class="access-card" id="accessCard">
@@ -433,7 +518,39 @@ body.ready{transition:none}
 
 <script>
 var tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) {
+  tg.ready();
+  tg.expand();
+  // Fix 2: Force a reflow after expand so the WebView recalculates layout
+  // with the new viewport dimensions before the first paint.
+  requestAnimationFrame(function() {
+    document.body.offsetHeight; // reading this triggers synchronous reflow
+    // Fix 3: GPU-accelerate ONLY the active page-body and bottom-nav.
+    // We deliberately exclude toasts, popups and the FAB because promoting
+    // them to compositor layers makes them visible before their show/active
+    // class is applied, causing the "elements showing without a call" bug.
+    var activePage = document.querySelector('.page.active');
+    if (activePage) {
+      var body = activePage.querySelector('.page-body');
+      if (body) {
+        body.style.transform = 'translateZ(0)';
+        body.style.webkitOverflowScrolling = 'touch';
+      }
+    }
+    var nav = document.querySelector('.bottom-nav');
+    if (nav) nav.style.transform = 'translateZ(0)';
+  });
+}
+
+// Hard reload — uses Telegram's native reload to match the three-dot menu behaviour
+function hardReload() {
+  if (tg && tg.reload) {
+    tg.reload();
+  } else {
+    // Force a fresh navigation — bypasses WebView cache better than location.reload()
+    location.href = location.href.split('?')[0] + '?_r=' + Date.now();
+  }
+}
 
 var batches = [];
 var _popupLectures = []; // stores lectures for popup reference by index
@@ -592,10 +709,15 @@ function openChapter(bid, sid, cid) {
       html += c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row">
           <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+          <div class="lec-info">
+            <div class="lec-name">${l.name}</div>
+            <div class="lec-mini-btns">
+              <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+              ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+            </div>
+          </div>
         </div>`;
       }).join('');
     }
@@ -607,10 +729,15 @@ function openChapter(bid, sid, cid) {
       c.lectures.map((l,i) => {
         var idx = _popupLectures.push(l) - 1;
         return `
-        <div class="lec-row" onclick="showLecturePopup(${idx})">
+        <div class="lec-row">
           <div class="lec-num">${i+1}</div>
-          <div class="lec-name">${l.name}</div>
-          <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+          <div class="lec-info">
+            <div class="lec-name">${l.name}</div>
+            <div class="lec-mini-btns">
+              <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+              ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+            </div>
+          </div>
         </div>`;
       }).join('');
   }
@@ -632,10 +759,15 @@ function openUnit(bid, sid, cid, uid) {
     u.lectures.map((l,i) => {
       var idx = _popupLectures.push(l) - 1;
       return `
-      <div class="lec-row" onclick="showLecturePopup(${idx})">
+      <div class="lec-row">
         <div class="lec-num">${i+1}</div>
-        <div class="lec-name">${l.name}</div>
-        <div class="lec-play-icon"><i class="ti ti-player-play-filled"></i></div>
+        <div class="lec-info">
+          <div class="lec-name">${l.name}</div>
+          <div class="lec-mini-btns">
+            <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+            ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+          </div>
+        </div>
       </div>`;
     }).join('');
   goTo('lectures');
@@ -1036,16 +1168,15 @@ function switchNavTab(tab) {
 
   if (tab === 'home') {
     var homeEl = document.getElementById('page-home');
-    var accEl = document.getElementById('page-access');
-    // Reset access page
-    accEl.style.transition = 'none';
-    accEl.style.transform = 'translateX(100%)';
-    accEl.classList.remove('active');
-    // Fully reset home page — clear any leftover transform from goTo/goBack
-    homeEl.style.transition = 'none';
+    // Deactivate ALL pages instantly, then bring home forward cleanly
+    document.querySelectorAll('.page').forEach(function(p) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateX(100%)';
+      p.classList.remove('active');
+    });
     homeEl.style.transform = '';
     homeEl.classList.add('active');
-    // Reset pageStack so goTo works fresh
+    // Reset pageStack so goTo works fresh from batch list
     pageStack = ['home'];
     if (tg) tg.BackButton.hide();
   } else {
@@ -1422,27 +1553,64 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
 .lec-row {
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);display:flex;align-items:center;
-  padding:13px 14px;gap:12px;cursor:pointer;
+  padding:12px 14px;gap:12px;
   transition:background 0.15s,border-color 0.15s;
   will-change:transform;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
   transform:translateZ(0);
 }
-.lec-row:active{background:var(--surface2);border-color:var(--accent)}
 .lec-num {
   width:36px;height:36px;border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;align-self:flex-start;margin-top:2px;
 }
-.lec-name{flex:1;font-size:14px;font-weight:500;line-height:1.35}
-.lec-play-icon {
-  width:30px;height:30px;border-radius:50%;
-  background:var(--surface2);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+.lec-info{flex:1;min-width:0}
+.lec-name{font-size:14px;font-weight:500;line-height:1.35}
+.lec-mini-btns{display:flex;gap:7px;margin-top:7px;flex-wrap:wrap}
+.lec-mini-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:5px 11px;border-radius:20px;border:none;
+  font-size:11px;font-weight:600;cursor:pointer;
+  transition:opacity 0.15s;
+  -webkit-tap-highlight-color:transparent;
 }
-.lec-play-icon i{font-size:13px;color:var(--accent)}
+.lec-mini-btn:active{opacity:0.7}
+.lec-mini-watch{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;
+}
+.lec-mini-notes{
+  background:var(--surface2);
+  border:1px solid var(--border) !important;
+  color:var(--text);
+}
+body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
+.lec-mini-btn i{font-size:11px}
+
+/* ── Flicker Notice Banner ────────────────────── */
+.flicker-notice{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 14px;
+  background:linear-gradient(90deg,rgba(79,142,247,0.12),rgba(124,92,191,0.10));
+  border-bottom:1px solid rgba(79,142,247,0.25);
+  flex-shrink:0;
+}
+.flicker-notice-left{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+.flicker-notice-icon{font-size:16px;flex-shrink:0}
+.flicker-notice-title{font-size:11px;font-weight:600;color:var(--text);line-height:1.3}
+.flicker-notice-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.flicker-reload-btn{
+  display:flex;align-items:center;gap:5px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:20px;
+  padding:6px 12px;font-size:11px;font-weight:700;
+  cursor:pointer;flex-shrink:0;
+  transition:opacity 0.15s;
+}
+.flicker-reload-btn:active{opacity:0.75}
+.flicker-reload-btn i{font-size:12px}
 
 /* ── Contact Button ───────────────────────────── */
 #contactBtn{position:fixed;bottom:80px;right:16px;z-index:300;cursor:pointer;user-select:none}
