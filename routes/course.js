@@ -222,7 +222,6 @@ module.exports = router;
 
 
 // ── Ad Token Schema ───────────────────────────────────────────────────────────
-const crypto = require("crypto");
 
 const adTokenSchema = new mongoose.Schema({
   userId:   { type: String, required: true },
