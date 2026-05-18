@@ -220,14 +220,28 @@ router.delete("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures/:li
 
 module.exports = router;
 
-// ── Access Control ────────────────────────────────────────────────────────────
+
+// ── Ad Token Schema ───────────────────────────────────────────────────────────
+const crypto = require("crypto");
+
+const adTokenSchema = new mongoose.Schema({
+  userId:   { type: String, required: true },
+  token:    { type: String, required: true, unique: true },
+  issuedAt: { type: Date, default: Date.now },
+  expiresAt:{ type: Date, required: true },
+});
+adTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const AdToken = mongoose.model("AdToken", adTokenSchema);
+
+// ── Access Schema ─────────────────────────────────────────────────────────────
 const accessSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
-  expiresAt: { type: Date, required: true },
+  userId:   { type: String, required: true, unique: true },
+  expiresAt:{ type: Date, required: true },
 });
 accessSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 const Access = mongoose.model("Access", accessSchema);
 
+// Check access
 router.get("/access/:userId", async (req, res) => {
   try {
     const record = await Access.findOne({ userId: req.params.userId });
@@ -236,12 +250,38 @@ router.get("/access/:userId", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post("/access/:userId", async (req, res) => {
+// Step 1: Issue one-time token before showing ad
+router.post("/access/token/:userId", async (req, res) => {
   try {
+    const userId = req.params.userId;
+    const existing = await Access.findOne({ userId });
+    if (existing && existing.expiresAt > new Date()) {
+      return res.json({ hasAccess: true, expiresAt: existing.expiresAt });
+    }
+    await AdToken.deleteMany({ userId });
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await AdToken.create({ userId, token, expiresAt });
+    res.json({ token });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Step 2: Claim access with token (min 15s after issuance)
+router.post("/access/claim/:userId", async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "Token required" });
+    const record = await AdToken.findOne({ userId, token });
+    if (!record) return res.status(403).json({ error: "Invalid or expired token. Ad dobara dekho." });
+    if (record.expiresAt < new Date()) return res.status(403).json({ error: "Token expired. Ad dobara dekho." });
+    const elapsed = (Date.now() - new Date(record.issuedAt)) / 1000;
+    if (elapsed < 15) return res.status(403).json({ error: "Ad poori nahi dekhi. Ruko..." });
+    await AdToken.deleteOne({ _id: record._id });
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await Access.findOneAndUpdate(
-      { userId: req.params.userId },
-      { userId: req.params.userId, expiresAt },
+      { userId },
+      { userId, expiresAt },
       { upsert: true, new: true }
     );
     res.json({ hasAccess: true, expiresAt });
