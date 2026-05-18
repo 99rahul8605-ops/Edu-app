@@ -226,6 +226,19 @@ body.ready{transition:none}
       <input class="search-input" id="searchInput" placeholder="Search batches..." oninput="handleSearch(this.value)">
     </div>
   </div>
+  <!-- Flicker Notice Banner -->
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="location.reload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <!-- Home Access Timer Bar -->
   <div id="homeTimerBar" style="display:none;background:linear-gradient(90deg,#0f2a1a,#0a1f2e);border-bottom:1px solid var(--border);padding:8px 16px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px">
     <div style="display:flex;align-items:center;gap:8px">
@@ -1471,6 +1484,29 @@ body.light-mode .popup-lec-btn-notes{background:var(--surface2);color:var(--text
 }
 body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
 .lec-mini-btn i{font-size:11px}
+
+/* ── Flicker Notice Banner ────────────────────── */
+.flicker-notice{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 14px;
+  background:linear-gradient(90deg,rgba(79,142,247,0.12),rgba(124,92,191,0.10));
+  border-bottom:1px solid rgba(79,142,247,0.25);
+  flex-shrink:0;
+}
+.flicker-notice-left{display:flex;align-items:center;gap:9px;flex:1;min-width:0}
+.flicker-notice-icon{font-size:16px;flex-shrink:0}
+.flicker-notice-title{font-size:11px;font-weight:600;color:var(--text);line-height:1.3}
+.flicker-notice-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.flicker-reload-btn{
+  display:flex;align-items:center;gap:5px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:20px;
+  padding:6px 12px;font-size:11px;font-weight:700;
+  cursor:pointer;flex-shrink:0;
+  transition:opacity 0.15s;
+}
+.flicker-reload-btn:active{opacity:0.75}
+.flicker-reload-btn i{font-size:12px}
 
 /* ── Contact Button ───────────────────────────── */
 #contactBtn{position:fixed;bottom:80px;right:16px;z-index:300;cursor:pointer;user-select:none}
