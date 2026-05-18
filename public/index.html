@@ -235,7 +235,7 @@ body.ready{transition:none}
         <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
       </div>
     </div>
-    <button class="flicker-reload-btn" onclick="location.reload()">
+    <button class="flicker-reload-btn" onclick="hardReload()">
       <i class="ti ti-refresh"></i> Reload
     </button>
   </div>
@@ -272,6 +272,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="subjPageTitle"></div><div class="topbar-sub" id="subjPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="hero" id="batchHero"></div>
     <div class="sec-label">Subjects</div>
@@ -285,6 +297,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="chapPageTitle"></div><div class="topbar-sub" id="chapPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="sec-label">Chapters</div>
     <div class="list" id="chapterList"></div>
@@ -297,6 +321,18 @@ body.ready{transition:none}
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="unitPageTitle"></div><div class="topbar-sub" id="unitPageSub"></div></div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="sec-label" id="unitSecLabel">Content</div>
     <div class="list" id="unitList"></div>
@@ -308,6 +344,18 @@ body.ready{transition:none}
   <div class="topbar">
     <button class="back-btn" onclick="goBack()"><i class="ti ti-arrow-left"></i></button>
     <div style="flex:1;min-width:0"><div class="topbar-title" id="lecPageTitle"></div><div class="topbar-sub" id="lecPageSub"></div></div>
+  </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
   </div>
   <div class="page-body">
     <div class="sec-label">Lectures</div>
@@ -323,6 +371,18 @@ body.ready{transition:none}
       <div class="topbar-title" id="lecDetailTitle">Lecture</div>
       <div class="topbar-sub" id="lecDetailSub"></div>
     </div>
+  </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
   </div>
   <div class="page-body">
     <div id="lecDetailContent"></div>
@@ -416,6 +476,18 @@ body.ready{transition:none}
       <div><div style="font-size:15px;font-weight:700">Access</div><div style="font-size:10px;color:var(--text2)">Watch ad to unlock</div></div>
     </div>
   </div>
+  <div class="flicker-notice">
+    <div class="flicker-notice-left">
+      <span class="flicker-notice-icon">⚡</span>
+      <div>
+        <div class="flicker-notice-title">Experiencing flickering or blank screens?</div>
+        <div class="flicker-notice-sub">A quick reload will fix it instantly.</div>
+      </div>
+    </div>
+    <button class="flicker-reload-btn" onclick="hardReload()">
+      <i class="ti ti-refresh"></i> Reload
+    </button>
+  </div>
   <div class="page-body">
     <div class="access-page-wrap">
       <div class="access-card" id="accessCard">
@@ -447,6 +519,11 @@ body.ready{transition:none}
 <script>
 var tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
+
+// Hard reload — bypasses cache so the page starts completely fresh
+function hardReload() {
+  try { location.reload(true); } catch(e) { location.href = location.href; }
+}
 
 var batches = [];
 var _popupLectures = []; // stores lectures for popup reference by index
