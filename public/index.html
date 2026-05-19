@@ -29,6 +29,10 @@ body.light-mode{
 .toggle-switch input{opacity:0;width:0;height:0;position:absolute}
 .toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:22px;cursor:pointer;transition:background 0.25s;border:1px solid var(--border)}
 
+.manage-breadcrumb{display:flex;align-items:center;gap:4px;padding:8px 4px 12px;flex-wrap:wrap}
+.manage-bc-btn{background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;padding:2px 4px}
+.manage-bc-sep{color:var(--text3);font-size:12px}
+.manage-back-btn{display:flex;align-items:center;gap:6px;background:var(--surface2);border:none;color:var(--text);font-size:13px;font-weight:500;padding:7px 12px;border-radius:var(--radius-sm);cursor:pointer;margin-bottom:10px}
 .edit-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:5px;display:flex;align-items:center;font-size:15px}
 .edit-btn:active{color:var(--accent)}
 .coming-soon-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:20px;padding:2px 8px;margin-top:4px}
@@ -469,7 +473,10 @@ body.ready{transition:none}
     </div>
 
     <!-- Manage -->
-    <div class="tab-content" id="tab-manage"><div id="manageList"></div></div>
+    <div class="tab-content" id="tab-manage">
+  <div id="manageBreadcrumb"></div>
+  <div id="manageList"></div>
+</div>
   </div>
 </div>
 
@@ -1092,34 +1099,130 @@ async function addLecture() {
   setLoading('btnLecture',false,'<i class="ti ti-plus"></i> Add Lecture');
 }
 
-function renderManage() {
-  var html='';
-  batches.forEach(b=>{
-    var pub = b.isPublic === true;
-    var pubLabel = pub ? '<i class="ti ti-eye-off" style="font-size:12px"></i> Unpublish' : '<i class="ti ti-send" style="font-size:12px"></i> Publish';
-    var pubClass = pub ? 'publish-btn public' : 'publish-btn';
-    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${pub ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="edit-btn" onclick="openEdit('batch','${b._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
-    b.subjects.forEach(s=>{
-      html+=`<div class="manage-item" style="padding-left:24px"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${b.name} · ${s.chapters.length} ch</div></div><button class="edit-btn" onclick="openEdit('subject','${b._id}','${s._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button></div>`;
-      s.chapters.forEach(c=>{
-        var cs = c.comingSoon ? '<span class="coming-soon-badge">🔜 Coming Soon</span>' : '';
-        html+=`<div class="manage-item" style="padding-left:40px"><span class="manage-item-icon" style="font-size:13px">📂</span><div class="manage-item-info"><div class="manage-item-name">${c.name} ${cs}</div><div class="manage-item-sub">${s.name} · ${c.lectures.length} lec</div></div><button class="edit-btn" onclick="openEdit('chapter','${b._id}','${s._id}','${c._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delChapter('${b._id}','${s._id}','${c._id}')"><i class="ti ti-trash"></i></button></div>`;
-        c.units.forEach(u=>{
-          html+=`<div class="manage-item" style="padding-left:56px"><span class="manage-item-icon" style="font-size:12px">📁</span><div class="manage-item-info"><div class="manage-item-name">${u.name}</div><div class="manage-item-sub">${c.name} · ${u.lectures.length} lec</div></div><button class="del-btn" onclick="delUnit('${b._id}','${s._id}','${c._id}','${u._id}')"><i class="ti ti-trash"></i></button></div>`;
-          u.lectures.forEach(l=>{
-            var lcs = l.comingSoon ? '<span class="coming-soon-badge">🔜</span>' : '';
-            html+=`<div class="manage-item" style="padding-left:72px"><span class="manage-item-icon" style="font-size:12px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name} ${lcs}</div><div class="manage-item-sub">${u.name}</div></div><button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${c._id}','${u._id}','${l._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${c._id}','${u._id}','${l._id}')"><i class="ti ti-trash"></i></button></div>`;
-          });
-        });
-        c.lectures.forEach(l=>{
-          var lcs = l.comingSoon ? '<span class="coming-soon-badge">🔜</span>' : '';
-          html+=`<div class="manage-item" style="padding-left:56px"><span class="manage-item-icon" style="font-size:12px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name} ${lcs}</div><div class="manage-item-sub">${c.name}</div></div><button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${c._id}',null,'${l._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${c._id}',null,'${l._id}')"><i class="ti ti-trash"></i></button></div>`;
-        });
-      });
+// ── Manage drill-down state ──────────────────────────────────────────────────
+var _mState = { level: 'batches', bid: null, sid: null, cid: null };
+
+function renderManage() { _mState = { level: 'batches', bid: null, sid: null, cid: null }; _renderManageLevel(); }
+
+function _renderManageLevel() {
+  _renderBreadcrumb();
+  var html = '';
+  var list = document.getElementById('manageList');
+
+  if (_mState.level === 'batches') {
+    if (!batches.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Nothing here yet</div>'; return; }
+    batches.forEach(b => {
+      var pub = b.isPublic === true;
+      var pubLabel = pub ? '<i class="ti ti-eye-off" style="font-size:11px"></i> Unpublish' : '<i class="ti ti-send" style="font-size:11px"></i> Publish';
+      var pubClass = pub ? 'publish-btn public' : 'publish-btn';
+      html += `<div class="manage-item">
+        <span class="manage-item-icon">🎓</span>
+        <div class="manage-item-info" style="cursor:pointer" onclick="_mDrill('subjects','${b._id}')">
+          <div class="manage-item-name">${b.name}</div>
+          <div class="manage-item-sub">${b.subjects.length} subjects · ${pub ? '🟢 Public' : '🔒 Private'}</div>
+        </div>
+        <button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button>
+        <button class="edit-btn" onclick="openEdit('batch','${b._id}')"><i class="ti ti-pencil"></i></button>
+        <button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button>
+      </div>`;
     });
-  });
-  document.getElementById('manageList').innerHTML = html||'<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Nothing here yet</div>';
+
+  } else if (_mState.level === 'subjects') {
+    var b = batches.find(x => x._id === _mState.bid);
+    if (!b) return;
+    if (!b.subjects.length) { html = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No subjects yet</div>'; }
+    b.subjects.forEach(s => {
+      html += `<div class="manage-item">
+        <span class="manage-item-icon">${s.icon}</span>
+        <div class="manage-item-info" style="cursor:pointer" onclick="_mDrill('chapters','${b._id}','${s._id}')">
+          <div class="manage-item-name">${s.name}</div>
+          <div class="manage-item-sub">${s.chapters.length} chapters</div>
+        </div>
+        <button class="edit-btn" onclick="openEdit('subject','${b._id}','${s._id}')"><i class="ti ti-pencil"></i></button>
+        <button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button>
+      </div>`;
+    });
+
+  } else if (_mState.level === 'chapters') {
+    var b = batches.find(x => x._id === _mState.bid);
+    var s = b && b.subjects.find(x => x._id === _mState.sid);
+    if (!s) return;
+    if (!s.chapters.length) { html = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No chapters yet</div>'; }
+    s.chapters.forEach(c => {
+      var cs = c.comingSoon ? '<span class="coming-soon-badge">🔜 Coming Soon</span>' : '';
+      var lecCount = c.lectures.length + c.units.reduce((a,u)=>a+u.lectures.length,0);
+      html += `<div class="manage-item">
+        <span class="manage-item-icon">📂</span>
+        <div class="manage-item-info" style="cursor:pointer" onclick="_mDrill('lectures','${b._id}','${s._id}','${c._id}')">
+          <div class="manage-item-name">${c.name} ${cs}</div>
+          <div class="manage-item-sub">${lecCount} lectures</div>
+        </div>
+        <button class="edit-btn" onclick="openEdit('chapter','${b._id}','${s._id}','${c._id}')"><i class="ti ti-pencil"></i></button>
+        <button class="del-btn" onclick="delChapter('${b._id}','${s._id}','${c._id}')"><i class="ti ti-trash"></i></button>
+      </div>`;
+    });
+
+  } else if (_mState.level === 'lectures') {
+    var b = batches.find(x => x._id === _mState.bid);
+    var s = b && b.subjects.find(x => x._id === _mState.sid);
+    var ch = s && s.chapters.find(x => x._id === _mState.cid);
+    if (!ch) return;
+    var allLecs = [];
+    ch.units.forEach(u => u.lectures.forEach(l => allLecs.push({ l, uid: u._id, uname: u.name })));
+    ch.lectures.forEach(l => allLecs.push({ l, uid: null, uname: null }));
+    if (!allLecs.length) { html = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">No lectures yet</div>'; }
+    allLecs.forEach(({ l, uid, uname }) => {
+      var lcs = l.comingSoon ? '<span class="coming-soon-badge">🔜</span>' : '';
+      var sub = uname ? uname : ch.name;
+      html += `<div class="manage-item">
+        <span class="manage-item-icon" style="font-size:13px">▶</span>
+        <div class="manage-item-info">
+          <div class="manage-item-name">${l.name} ${lcs}</div>
+          <div class="manage-item-sub">${sub}</div>
+        </div>
+        <button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${ch._id}','${uid||''}','${l._id}')"><i class="ti ti-pencil"></i></button>
+        <button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${ch._id}','${uid||null}','${l._id}')"><i class="ti ti-trash"></i></button>
+      </div>`;
+    });
+  }
+
+  list.innerHTML = html;
 }
+
+function _mDrill(level, bid, sid, cid) {
+  _mState = { level, bid: bid||null, sid: sid||null, cid: cid||null };
+  _renderManageLevel();
+}
+
+function _mBack() {
+  if (_mState.level === 'lectures')  { _mDrill('chapters', _mState.bid, _mState.sid); }
+  else if (_mState.level === 'chapters') { _mDrill('subjects', _mState.bid); }
+  else if (_mState.level === 'subjects') { _mDrill('batches'); }
+}
+
+function _renderBreadcrumb() {
+  var el = document.getElementById('manageBreadcrumb');
+  if (!el) return;
+  if (_mState.level === 'batches') { el.innerHTML = ''; return; }
+  var b = batches.find(x => x._id === _mState.bid);
+  var s = b && batches.find(x=>x._id===_mState.bid).subjects.find(x => x._id === _mState.sid);
+  var ch = s && s.chapters.find(x => x._id === _mState.cid);
+  var parts = [{ label: 'Batches', level: 'batches' }];
+  if (b) parts.push({ label: b.name, level: 'subjects', bid: b._id });
+  if (s) parts.push({ label: s.name, level: 'chapters', bid: b._id, sid: s._id });
+  if (ch) parts.push({ label: ch.name, level: 'lectures' });
+  var html = '<div class="manage-breadcrumb">';
+  parts.forEach((p, i) => {
+    if (i < parts.length - 1) {
+      html += `<button class="manage-bc-btn" onclick="_mDrill('${p.level}','${p.bid||''}','${p.sid||''}')">${p.label}</button><span class="manage-bc-sep">›</span>`;
+    } else {
+      html += `<span style="font-size:13px;font-weight:600;color:var(--text);padding:2px 4px">${p.label}</span>`;
+    }
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 var _editCtx = {};
@@ -1231,7 +1334,7 @@ async function saveEdit() {
     }
     renderBatches(batches);
     populateAllSelects();
-    renderManage();
+    _renderManageLevel();
     closeEdit();
     toast('Saved! ✅', 'success');
   } catch(e) {
@@ -1241,17 +1344,17 @@ async function saveEdit() {
   btn.innerHTML = '<i class="ti ti-check"></i> Save';
 }
 
-async function delBatch(bid){if(!confirm('Batch delete?'))return;try{await apiFetch(`/api/batches/${bid}`,'DELETE');batches=batches.filter(x=>x._id!==bid);renderBatches(batches);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delSubject(bid,sid){if(!confirm('Subject delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}`,'DELETE');var b=batches.find(x=>x._id===bid);if(b)b.subjects=b.subjects.filter(x=>x._id!==sid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delChapter(bid,sid,cid){if(!confirm('Chapter delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);if(s)s.chapters=s.chapters.filter(x=>x._id!==cid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
-async function delUnit(bid,sid,cid,uid){if(!confirm('Unit delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);var c=s&&s.chapters.find(x=>x._id===cid);if(c)c.units=c.units.filter(x=>x._id!==uid);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delBatch(bid){if(!confirm('Batch delete?'))return;try{await apiFetch(`/api/batches/${bid}`,'DELETE');batches=batches.filter(x=>x._id!==bid);renderBatches(batches);populateAllSelects();_renderManageLevel();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delSubject(bid,sid){if(!confirm('Subject delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}`,'DELETE');var b=batches.find(x=>x._id===bid);if(b)b.subjects=b.subjects.filter(x=>x._id!==sid);populateAllSelects();_renderManageLevel();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delChapter(bid,sid,cid){if(!confirm('Chapter delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);if(s)s.chapters=s.chapters.filter(x=>x._id!==cid);populateAllSelects();_renderManageLevel();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+async function delUnit(bid,sid,cid,uid){if(!confirm('Unit delete?'))return;try{await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}`,'DELETE');var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);var c=s&&s.chapters.find(x=>x._id===cid);if(c)c.units=c.units.filter(x=>x._id!==uid);populateAllSelects();_renderManageLevel();toast('Deleted!','success');}catch(e){toast('Error','error');}}
 async function delLecture(bid,sid,cid,uid,lid){if(!confirm('Lecture delete?'))return;try{
   var url = uid ? `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}/lectures/${lid}` : `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/lectures/${lid}`;
   await apiFetch(url,'DELETE');
   var b=batches.find(x=>x._id===bid);var s=b&&b.subjects.find(x=>x._id===sid);var c=s&&s.chapters.find(x=>x._id===cid);
   if(uid){var u=c&&c.units.find(x=>x._id===uid);if(u)u.lectures=u.lectures.filter(x=>x._id!==lid);}
   else{if(c)c.lectures=c.lectures.filter(x=>x._id!==lid);}
-  populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
+  populateAllSelects();_renderManageLevel();toast('Deleted!','success');}catch(e){toast('Error','error');}}
 
 async function togglePublish(bid) {
   try {
@@ -1259,7 +1362,7 @@ async function togglePublish(bid) {
     var b = batches.find(x => x._id === bid);
     if (b) b.isPublic = r.isPublic;
     renderBatches(batches);
-    renderManage();
+    _renderManageLevel();
     toast(r.isPublic ? '🟢 Batch is now Public!' : '🔒 Batch is now Private!', 'success');
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
