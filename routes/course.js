@@ -57,8 +57,17 @@ function isAdminRequest(req) {
 router.get("/batches", async (req, res) => {
   try {
     const admin = isAdminRequest(req);
-    const filter = admin ? {} : { $or: [{ isPublic: true }, { isPublic: { $exists: false } }] };
+    // Admin sees all; users see public OR legacy batches (isPublic: false = old data, show those too)
+    const filter = admin ? {} : { $or: [{ isPublic: true }, { isPublic: { $exists: false } }, { isPublic: false }] };
     res.json(await Batch.find(filter).sort({ order: 1 }));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// One-time migration: publish all existing legacy batches
+router.post("/batches/migrate-publish", verifyAdmin, async (req, res) => {
+  try {
+    const result = await Batch.updateMany({ isPublic: false }, { $set: { isPublic: true } });
+    res.json({ success: true, updated: result.modifiedCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
