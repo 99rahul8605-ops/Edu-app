@@ -367,7 +367,6 @@ async function startBot() {
         `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\nShare this link — all files will be delivered at once:`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 Saari Files Lo", url: link }]] } }
       );
-      await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
     } catch (err) {
       console.error("Batch save error:", err.message);
       try {
@@ -558,7 +557,6 @@ async function startBot() {
       await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
-      await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
 
     } catch (err) {
       console.error("Link fetch error:", err.message);
@@ -625,7 +623,6 @@ async function startBot() {
         await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
           { reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
         );
-        await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
       } catch (err) {
         console.error("Save error:", err.message);
         try {
