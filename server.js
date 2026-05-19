@@ -364,7 +364,7 @@ async function startBot() {
 
       const fileList = session.files.map((f, i) => `${i + 1}. ${f.file_name}`).join("\n");
       await bot.sendMessage(chatId,
-        `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\nShare this link — all files will be delivered at once:`,
+        `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\n🔗 Link:\n${link}`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 Saari Files Lo", url: link }]] } }
       );
     } catch (err) {
@@ -554,7 +554,7 @@ async function startBot() {
       });
       const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
       await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
+      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n${link}`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
 
@@ -620,7 +620,7 @@ async function startBot() {
         });
         const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
         await bot.deleteMessage(chatId, processing.message_id);
-        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
+        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n${link}`,
           { reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
         );
       } catch (err) {
