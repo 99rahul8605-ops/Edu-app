@@ -398,39 +398,86 @@ async function startBot() {
     );
   });
 
-  // ── /myfiles ─────────────────────────────────────────────────────────────────
-  bot.onText(/\/myfiles/, async (msg) => {
-    const userId = msg.from?.id;
-    if (!isOwner(userId)) return; // Silent ignore
+  // ── /myfiles — paginated 10 per page with inline Next/Prev buttons ───────────
+  const PAGE_SIZE = 10;
 
-    const chatId = msg.chat.id;
+  async function sendMyFilesPage(chatId, userId, page, editMsgId = null) {
     try {
-      const files = await FileRecord.find({ uploaded_by: userId }).sort({ created_at: -1 }).limit(20);
-      const batches = await BulkBatch.find({ user_id: userId }).sort({ created_at: -1 }).limit(10);
+      const totalFiles   = await FileRecord.countDocuments({ uploaded_by: userId });
+      const totalBatches = await BulkBatch.countDocuments({ user_id: userId });
+      const totalItems   = totalFiles + totalBatches;
 
-      if (files.length === 0 && batches.length === 0) {
+      if (totalItems === 0) {
         return bot.sendMessage(chatId, `No files or batches uploaded yet.`);
       }
 
+      const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+      page = Math.max(0, Math.min(page, totalPages - 1));
+      const skip = page * PAGE_SIZE;
+
+      // Fetch combined page: files first, then batches (sorted by date desc)
+      const allFiles   = await FileRecord.find({ uploaded_by: userId }).sort({ created_at: -1 });
+      const allBatches = await BulkBatch.find({ user_id: userId }).sort({ created_at: -1 });
+
+      // Merge into one list with type tag
+      const combined = [
+        ...allFiles.map(f => ({ type: "file", data: f })),
+        ...allBatches.map(b => ({ type: "batch", data: b })),
+      ];
+      const pageItems = combined.slice(skip, skip + PAGE_SIZE);
+
       const emoji = { document: "📄", photo: "🖼️", video: "🎬", audio: "🎵", voice: "🎤", video_note: "📹" };
-      let text = "";
+      let text = `📂 My Files — Page ${page + 1} of ${totalPages} (${totalItems} total)\n\n`;
 
-      if (files.length > 0) {
-        text += `📁 Single Files (${files.length}):\n\n`;
-        files.forEach((f) => {
-          text += `${emoji[f.file_type] || "📎"} ${f.file_name}\nhttps://t.me/${BOT_USERNAME}?start=${f.code}\n\n`;
-        });
-      }
-      if (batches.length > 0) {
-        text += `📦 Bulk Batches (${batches.length}):\n\n`;
-        batches.forEach((b) => {
-          text += `🗂️ Batch (${b.files.length} files) — ${b.created_at.toLocaleDateString("en-IN")}\nhttps://t.me/${BOT_USERNAME}?start=${b.batch_code}\n\n`;
-        });
-      }
+      pageItems.forEach((item, i) => {
+        const n = skip + i + 1;
+        if (item.type === "file") {
+          const f = item.data;
+          text += `${n}. ${emoji[f.file_type] || "📎"} ${f.file_name}\nhttps://t.me/${BOT_USERNAME}?start=${f.code}\n\n`;
+        } else {
+          const b = item.data;
+          text += `${n}. 📦 Batch (${b.files.length} files) — ${b.created_at.toLocaleDateString("en-IN")}\nhttps://t.me/${BOT_USERNAME}?start=${b.batch_code}\n\n`;
+        }
+      });
 
-      bot.sendMessage(chatId, text, { disable_web_page_preview: true });
+      // Build Prev / Next inline keyboard
+      const buttons = [];
+      if (page > 0)            buttons.push({ text: "⬅️ Previous", callback_data: `myfiles_page_${page - 1}` });
+      if (page < totalPages-1) buttons.push({ text: "Next ➡️",     callback_data: `myfiles_page_${page + 1}` });
+
+      const reply_markup = buttons.length > 0 ? { inline_keyboard: [buttons] } : undefined;
+
+      if (editMsgId) {
+        await bot.editMessageText(text, {
+          chat_id: chatId, message_id: editMsgId,
+          disable_web_page_preview: true,
+          reply_markup,
+        });
+      } else {
+        await bot.sendMessage(chatId, text, { disable_web_page_preview: true, reply_markup });
+      }
     } catch (err) {
+      console.error("myfiles error:", err.message);
       bot.sendMessage(chatId, `An error occurred. Please try again.`);
+    }
+  }
+
+  bot.onText(/\/myfiles/, async (msg) => {
+    const userId = msg.from?.id;
+    if (!isOwner(userId)) return; // Silent ignore
+    await sendMyFilesPage(msg.chat.id, userId, 0);
+  });
+
+  // ── Inline button callback for pagination ────────────────────────────────────
+  bot.on("callback_query", async (query) => {
+    const userId = query.from?.id;
+    if (!isOwner(userId)) return bot.answerCallbackQuery(query.id);
+
+    const data = query.data;
+    if (data && data.startsWith("myfiles_page_")) {
+      const page = parseInt(data.replace("myfiles_page_", ""), 10);
+      await sendMyFilesPage(query.message.chat.id, userId, page, query.message.message_id);
+      await bot.answerCallbackQuery(query.id);
     }
   });
 
@@ -463,9 +510,11 @@ async function startBot() {
   // ── Telegram message link fetch (Owner only) ─────────────────────────────────
   const TG_LINK_RE = /https?:\/\/t\.me\/(c\/(\d+)|([a-zA-Z][a-zA-Z0-9_]{3,}))\/(\d+)/;
 
-  bot.onText(TG_LINK_RE, async (msg, match) => {
+  bot.onText(TG_LINK_RE, (msg, match) => {
     const userId = msg.from?.id;
     if (!isOwner(userId)) return; // Silent ignore
+
+    enqueueFile(userId, async () => {
 
     const chatId = msg.chat.id;
     const isPrivate = !!match[2];
@@ -525,10 +574,22 @@ async function startBot() {
         await bot.editMessageText(errText, { chat_id: chatId, message_id: processing.message_id });
       } catch (_) { bot.sendMessage(chatId, errText); }
     }
+    }); // end enqueueFile
   });
 
+  // ── Per-user file queue — ensures files are saved one by one in order ─────────
+  const fileQueues = new Map(); // userId -> Promise chain
+
+  function enqueueFile(userId, task) {
+    const prev = fileQueues.get(userId) || Promise.resolve();
+    const next = prev.then(task).catch(() => {});
+    fileQueues.set(userId, next);
+    // Clean up after done so map doesn't grow forever
+    next.finally(() => { if (fileQueues.get(userId) === next) fileQueues.delete(userId); });
+  }
+
   // ── File upload handler (Owner only) ────────────────────────────────────────
-  bot.on("message", async (msg) => {
+  bot.on("message", (msg) => {
     if (msg.text && TG_LINK_RE.test(msg.text)) return; // Already handled above
     if (msg.text) return; // Text messages ignore
     if (!isOwner(msg.from?.id)) return; // Silent ignore for non-owner
@@ -540,36 +601,40 @@ async function startBot() {
 
     const session = bulkSessions.get(userId);
     if (session) {
+      // Bulk mode — just push immediately, order doesn't matter
       session.files.push(fileInfo);
       const count = session.files.length;
-      await bot.sendMessage(chatId,
+      bot.sendMessage(chatId,
         `✅ File ${count} added: ${fileInfo.file_name}\n📦 Total: ${count} file(s)\n\nSend more files or type /done to get the link.`,
         { reply_to_message_id: msg.message_id }
       );
       return;
     }
 
-    const processing = await bot.sendMessage(chatId, `⏳ Saving file...`);
-    try {
-      const code = await getUniqueCode();
-      await FileRecord.create({
-        code, file_id: fileInfo.file_id, file_type: fileInfo.file_type,
-        file_name: fileInfo.file_name, uploaded_by: userId, expires_at: null,
-      });
-      const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
-      await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
-        { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
-      );
-      await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
-    } catch (err) {
-      console.error("Save error:", err.message);
+    // Non-bulk: queue each file so they save one by one in order
+    enqueueFile(userId, async () => {
+      const processing = await bot.sendMessage(chatId, `⏳ Saving: ${fileInfo.file_name}...`);
       try {
-        await bot.editMessageText(`File could not be saved. Please try again.`, {
-          chat_id: chatId, message_id: processing.message_id
+        const code = await getUniqueCode();
+        await FileRecord.create({
+          code, file_id: fileInfo.file_id, file_type: fileInfo.file_type,
+          file_name: fileInfo.file_name, uploaded_by: userId, expires_at: null,
         });
-      } catch (_) { bot.sendMessage(chatId, `File could not be saved. Please try again.`); }
-    }
+        const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
+        await bot.deleteMessage(chatId, processing.message_id);
+        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
+          { reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
+        );
+        await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
+      } catch (err) {
+        console.error("Save error:", err.message);
+        try {
+          await bot.editMessageText(`❌ Could not save: ${fileInfo.file_name}. Try again.`, {
+            chat_id: chatId, message_id: processing.message_id
+          });
+        } catch (_) { bot.sendMessage(chatId, `❌ Could not save: ${fileInfo.file_name}. Try again.`); }
+      }
+    });
   });
 
   // ── Polling error ────────────────────────────────────────────────────────────
