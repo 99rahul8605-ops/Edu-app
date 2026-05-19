@@ -416,14 +416,14 @@ async function startBot() {
       const skip = page * PAGE_SIZE;
 
       // Fetch combined page: files first, then batches (sorted by date desc)
-      const allFiles   = await FileRecord.find({ uploaded_by: userId }).sort({ created_at: -1 });
-      const allBatches = await BulkBatch.find({ user_id: userId }).sort({ created_at: -1 });
+      const allFiles   = await FileRecord.find({ uploaded_by: userId });
+      const allBatches = await BulkBatch.find({ user_id: userId });
 
-      // Merge into one list with type tag
+      // Merge and sort by created_at descending (newest first)
       const combined = [
-        ...allFiles.map(f => ({ type: "file", data: f })),
-        ...allBatches.map(b => ({ type: "batch", data: b })),
-      ];
+        ...allFiles.map(f => ({ type: "file", data: f, created_at: f.created_at })),
+        ...allBatches.map(b => ({ type: "batch", data: b, created_at: b.created_at })),
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       const pageItems = combined.slice(skip, skip + PAGE_SIZE);
 
       const emoji = { document: "📄", photo: "🖼️", video: "🎬", audio: "🎵", voice: "🎤", video_note: "📹" };
