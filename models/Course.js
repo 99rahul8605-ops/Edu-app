@@ -5,7 +5,6 @@ const lectureSchema = new mongoose.Schema({
   link: { type: String, required: true },
   notes: { type: String, default: "" }, // optional class notes link
   order: { type: Number, default: 0 },
-  comingSoon: { type: Boolean, default: false },
 });
 
 const unitSchema = new mongoose.Schema({
@@ -19,7 +18,6 @@ const chapterSchema = new mongoose.Schema({
   order: { type: Number, default: 0 },
   units: [unitSchema],
   lectures: [lectureSchema], // agar unit nahi hai to seedha lectures
-  comingSoon: { type: Boolean, default: false },
 });
 
 const subjectSchema = new mongoose.Schema({
