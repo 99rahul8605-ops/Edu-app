@@ -92,6 +92,17 @@ router.delete("/batches/:bid", verifyAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Edit batch
+router.patch("/batches/:bid/edit", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    if (!batch) return res.status(404).json({ error: "Batch not found" });
+    if (req.body.name) batch.name = req.body.name;
+    if (req.body.description !== undefined) batch.description = req.body.description;
+    await batch.save(); res.json(batch);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Subjects ──────────────────────────────────────────────────────────────────
 
 router.post("/batches/:bid/subjects", verifyAdmin, async (req, res) => {
@@ -111,6 +122,19 @@ router.delete("/batches/:bid/subjects/:sid", verifyAdmin, async (req, res) => {
     batch.subjects = batch.subjects.filter(s => s._id.toString() !== req.params.sid);
     await batch.save();
     res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Edit subject
+router.patch("/batches/:bid/subjects/:sid/edit", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    const subj = batch && batch.subjects.id(req.params.sid);
+    if (!subj) return res.status(404).json({ error: "Not found" });
+    if (req.body.name) subj.name = req.body.name;
+    if (req.body.icon) subj.icon = req.body.icon;
+    if (req.body.color) subj.color = req.body.color;
+    await batch.save(); res.json(batch);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -135,6 +159,19 @@ router.delete("/batches/:bid/subjects/:sid/chapters/:cid", verifyAdmin, async (r
     subj.chapters = subj.chapters.filter(c => c._id.toString() !== req.params.cid);
     await batch.save();
     res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Edit chapter name + comingSoon flag
+router.patch("/batches/:bid/subjects/:sid/chapters/:cid/edit", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    const subj = batch && batch.subjects.id(req.params.sid);
+    const chap = subj && subj.chapters.id(req.params.cid);
+    if (!chap) return res.status(404).json({ error: "Not found" });
+    if (req.body.name) chap.name = req.body.name;
+    if (req.body.comingSoon !== undefined) chap.comingSoon = req.body.comingSoon;
+    await batch.save(); res.json(batch);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -190,6 +227,22 @@ router.delete("/batches/:bid/subjects/:sid/chapters/:cid/lectures/:lid", verifyA
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Edit chapter-level lecture
+router.patch("/batches/:bid/subjects/:sid/chapters/:cid/lectures/:lid/edit", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    const subj = batch && batch.subjects.id(req.params.sid);
+    const chap = subj && subj.chapters.id(req.params.cid);
+    const lec = chap && chap.lectures.id(req.params.lid);
+    if (!lec) return res.status(404).json({ error: "Not found" });
+    if (req.body.name) lec.name = req.body.name;
+    if (req.body.link !== undefined) lec.link = req.body.link;
+    if (req.body.notes !== undefined) lec.notes = req.body.notes;
+    if (req.body.comingSoon !== undefined) lec.comingSoon = req.body.comingSoon;
+    await batch.save(); res.json(batch);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Lectures (unit-level) ─────────────────────────────────────────────────────
 
 router.post("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures", verifyAdmin, async (req, res) => {
@@ -215,6 +268,23 @@ router.delete("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures/:li
     unit.lectures = unit.lectures.filter(l => l._id.toString() !== req.params.lid);
     await batch.save();
     res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Edit unit-level lecture
+router.patch("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures/:lid/edit", verifyAdmin, async (req, res) => {
+  try {
+    const batch = await Batch.findById(req.params.bid);
+    const subj = batch && batch.subjects.id(req.params.sid);
+    const chap = subj && subj.chapters.id(req.params.cid);
+    const unit = chap && chap.units.id(req.params.uid);
+    const lec = unit && unit.lectures.id(req.params.lid);
+    if (!lec) return res.status(404).json({ error: "Not found" });
+    if (req.body.name) lec.name = req.body.name;
+    if (req.body.link !== undefined) lec.link = req.body.link;
+    if (req.body.notes !== undefined) lec.notes = req.body.notes;
+    if (req.body.comingSoon !== undefined) lec.comingSoon = req.body.comingSoon;
+    await batch.save(); res.json(batch);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -272,10 +342,10 @@ router.post("/access/claim/:userId", async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: "Token required" });
     const record = await AdToken.findOne({ userId, token });
-    if (!record) return res.status(403).json({ error: "Invalid or expired token. Ad dobara dekho." });
-    if (record.expiresAt < new Date()) return res.status(403).json({ error: "Token expired. Ad dobara dekho." });
+    if (!record) return res.status(403).json({ error: "Invalid or expired token. Please watch the ad again." });
+    if (record.expiresAt < new Date()) return res.status(403).json({ error: "Token expired. Please watch the ad again." });
     const elapsed = (Date.now() - new Date(record.issuedAt)) / 1000;
-    if (elapsed < 15) return res.status(403).json({ error: "Ad poori nahi dekhi. Ruko..." });
+    if (elapsed < 15) return res.status(403).json({ error: "Ad not fully watched. Please wait..." });
     await AdToken.deleteOne({ _id: record._id });
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await Access.findOneAndUpdate(
