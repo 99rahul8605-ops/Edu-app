@@ -28,11 +28,6 @@ body.light-mode{
 .toggle-switch{position:relative;width:38px;height:22px;flex-shrink:0}
 .toggle-switch input{opacity:0;width:0;height:0;position:absolute}
 .toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:22px;cursor:pointer;transition:background 0.25s;border:1px solid var(--border)}
-
-.edit-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:5px;display:flex;align-items:center;font-size:15px}
-.edit-btn:active{color:var(--accent)}
-.coming-soon-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:20px;padding:2px 8px;margin-top:4px}
-
 .toggle-slider:before{content:'☀️';position:absolute;left:3px;top:50%;transform:translateY(-50%);font-size:11px;line-height:1;transition:left 0.25s}
 .toggle-switch input:checked + .toggle-slider{background:var(--accent)}
 .toggle-switch input:checked + .toggle-slider:before{content:'🌙';left:18px}
@@ -718,12 +713,10 @@ function openChapter(bid, sid, cid) {
           <div class="lec-num">${i+1}</div>
           <div class="lec-info">
             <div class="lec-name">${l.name}</div>
-            ${l.comingSoon
-              ? '<div style="margin-top:6px"><span class="coming-soon-badge">🔜 Coming Soon</span></div>'
-              : `<div class="lec-mini-btns">
-                  <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
-                  ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
-                </div>`}
+            <div class="lec-mini-btns">
+              <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+              ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+            </div>
           </div>
         </div>`;
       }).join('');
@@ -770,12 +763,10 @@ function openUnit(bid, sid, cid, uid) {
         <div class="lec-num">${i+1}</div>
         <div class="lec-info">
           <div class="lec-name">${l.name}</div>
-          ${l.comingSoon
-            ? '<div style="margin-top:6px"><span class="coming-soon-badge">🔜 Coming Soon</span></div>'
-            : `<div class="lec-mini-btns">
-                <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
-                ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
-              </div>`}
+          <div class="lec-mini-btns">
+            <button class="lec-mini-btn lec-mini-watch" onclick="openLink('${l.link}','lecture')"><i class="ti ti-player-play-filled"></i> Lecture</button>
+            ${l.notes ? `<button class="lec-mini-btn lec-mini-notes" onclick="openLink('${l.notes}','notes')"><i class="ti ti-notes"></i> Notes</button>` : ''}
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -1057,149 +1048,25 @@ function renderManage() {
   var html='';
   batches.forEach(b=>{
     var pub = b.isPublic === true;
-    var pubLabel = pub ? '<i class="ti ti-eye-off" style="font-size:12px"></i> Unpublish' : '<i class="ti ti-send" style="font-size:12px"></i> Publish';
+    var pubLabel = pub
+      ? '<i class="ti ti-eye-off" style="font-size:12px"></i> Unpublish'
+      : '<i class="ti ti-send" style="font-size:12px"></i> Publish';
     var pubClass = pub ? 'publish-btn public' : 'publish-btn';
-    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${pub ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="edit-btn" onclick="openEdit('batch','${b._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
+    html+=`<div class="manage-item"><span class="manage-item-icon">🎓</span><div class="manage-item-info"><div class="manage-item-name">${b.name}</div><div class="manage-item-sub">${b.subjects.length} subjects · ${pub ? '🟢 Public' : '🔒 Private'}</div></div><button class="${pubClass}" onclick="togglePublish('${b._id}')">${pubLabel}</button><button class="del-btn" onclick="delBatch('${b._id}')"><i class="ti ti-trash"></i></button></div>`;
     b.subjects.forEach(s=>{
-      html+=`<div class="manage-item" style="padding-left:24px"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${b.name} · ${s.chapters.length} ch</div></div><button class="edit-btn" onclick="openEdit('subject','${b._id}','${s._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button></div>`;
+      html+=`<div class="manage-item" style="padding-left:24px"><span class="manage-item-icon">${s.icon}</span><div class="manage-item-info"><div class="manage-item-name">${s.name}</div><div class="manage-item-sub">${b.name} · ${s.chapters.length} ch</div></div><button class="del-btn" onclick="delSubject('${b._id}','${s._id}')"><i class="ti ti-trash"></i></button></div>`;
       s.chapters.forEach(c=>{
-        var cs = c.comingSoon ? '<span class="coming-soon-badge">🔜 Coming Soon</span>' : '';
-        html+=`<div class="manage-item" style="padding-left:40px"><span class="manage-item-icon" style="font-size:13px">📂</span><div class="manage-item-info"><div class="manage-item-name">${c.name} ${cs}</div><div class="manage-item-sub">${s.name} · ${c.lectures.length} lec</div></div><button class="edit-btn" onclick="openEdit('chapter','${b._id}','${s._id}','${c._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delChapter('${b._id}','${s._id}','${c._id}')"><i class="ti ti-trash"></i></button></div>`;
+        html+=`<div class="manage-item" style="padding-left:40px"><span class="manage-item-icon" style="font-size:13px">📂</span><div class="manage-item-info"><div class="manage-item-name">${c.name}</div><div class="manage-item-sub">${s.name}</div></div><button class="del-btn" onclick="delChapter('${b._id}','${s._id}','${c._id}')"><i class="ti ti-trash"></i></button></div>`;
         c.units.forEach(u=>{
           html+=`<div class="manage-item" style="padding-left:56px"><span class="manage-item-icon" style="font-size:12px">📁</span><div class="manage-item-info"><div class="manage-item-name">${u.name}</div><div class="manage-item-sub">${c.name} · ${u.lectures.length} lec</div></div><button class="del-btn" onclick="delUnit('${b._id}','${s._id}','${c._id}','${u._id}')"><i class="ti ti-trash"></i></button></div>`;
-          u.lectures.forEach(l=>{
-            var lcs = l.comingSoon ? '<span class="coming-soon-badge">🔜</span>' : '';
-            html+=`<div class="manage-item" style="padding-left:72px"><span class="manage-item-icon" style="font-size:12px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name} ${lcs}</div><div class="manage-item-sub">${u.name}</div></div><button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${c._id}','${u._id}','${l._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${c._id}','${u._id}','${l._id}')"><i class="ti ti-trash"></i></button></div>`;
-          });
         });
         c.lectures.forEach(l=>{
-          var lcs = l.comingSoon ? '<span class="coming-soon-badge">🔜</span>' : '';
-          html+=`<div class="manage-item" style="padding-left:56px"><span class="manage-item-icon" style="font-size:12px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name} ${lcs}</div><div class="manage-item-sub">${c.name}</div></div><button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${c._id}',null,'${l._id}')"><i class="ti ti-pencil"></i></button><button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${c._id}',null,'${l._id}')"><i class="ti ti-trash"></i></button></div>`;
+          html+=`<div class="manage-item" style="padding-left:56px"><span class="manage-item-icon" style="font-size:12px">▶</span><div class="manage-item-info"><div class="manage-item-name">${l.name}</div><div class="manage-item-sub">${c.name}</div></div><button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${c._id}',null,'${l._id}')"><i class="ti ti-trash"></i></button></div>`;
         });
       });
     });
   });
   document.getElementById('manageList').innerHTML = html||'<div style="text-align:center;padding:20px;color:var(--text2);font-size:13px">Kuch nahi hai</div>';
-}
-
-// ── Edit Modal ────────────────────────────────────────────────────────────────
-var _editCtx = {};
-
-function openEdit(type, bid, sid, cid, uid, lid) {
-  _editCtx = { type, bid, sid, cid, uid, lid };
-  var body = '';
-  var title = '';
-
-  if (type === 'batch') {
-    var b = batches.find(x => x._id === bid);
-    title = 'Edit Batch';
-    body = `<div class="form-group"><label class="form-label">Batch Name</label><input class="form-input" id="ei_name" value="${b.name}"></div>
-            <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="ei_desc" value="${b.description||''}"></div>`;
-  } else if (type === 'subject') {
-    var b = batches.find(x => x._id === bid);
-    var s = b && b.subjects.find(x => x._id === sid);
-    title = 'Edit Subject';
-    body = `<div class="form-group"><label class="form-label">Subject Name</label><input class="form-input" id="ei_name" value="${s.name}"></div>
-            <div class="form-group"><label class="form-label">Icon (emoji)</label><input class="form-input" id="ei_icon" value="${s.icon}" maxlength="4" style="font-size:20px"></div>
-            <div class="form-group"><label class="form-label">Color</label>
-              <select class="form-select" id="ei_color">
-                <option value="#4f8ef7" ${s.color==='#4f8ef7'?'selected':''}>🔵 Blue</option>
-                <option value="#7c5cbf" ${s.color==='#7c5cbf'?'selected':''}>🟣 Purple</option>
-                <option value="#22c55e" ${s.color==='#22c55e'?'selected':''}>🟢 Green</option>
-                <option value="#f5a623" ${s.color==='#f5a623'?'selected':''}>🟠 Orange</option>
-                <option value="#ef4444" ${s.color==='#ef4444'?'selected':''}>🔴 Red</option>
-                <option value="#06b6d4" ${s.color==='#06b6d4'?'selected':''}>🩵 Cyan</option>
-                <option value="#ec4899" ${s.color==='#ec4899'?'selected':''}>🩷 Pink</option>
-              </select>
-            </div>`;
-  } else if (type === 'chapter') {
-    var b = batches.find(x => x._id === bid);
-    var s = b && b.subjects.find(x => x._id === sid);
-    var c = s && s.chapters.find(x => x._id === cid);
-    title = 'Edit Chapter';
-    body = `<div class="form-group"><label class="form-label">Chapter Name</label><input class="form-input" id="ei_name" value="${c.name}"></div>
-            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm)">
-              <input type="checkbox" id="ei_comingSoon" ${c.comingSoon?'checked':''} style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)">
-              <label for="ei_comingSoon" style="font-size:13px;font-weight:500;cursor:pointer">Mark as Coming Soon 🔜</label>
-            </div>`;
-  } else if (type === 'lecture') {
-    var b = batches.find(x => x._id === bid);
-    var s = b && b.subjects.find(x => x._id === sid);
-    var c = s && s.chapters.find(x => x._id === cid);
-    var lec = uid
-      ? (c && c.units.find(x => x._id === uid) && c.units.find(x => x._id === uid).lectures.find(x => x._id === lid))
-      : (c && c.lectures.find(x => x._id === lid));
-    title = 'Edit Lecture';
-    body = `<div class="form-group"><label class="form-label">Lecture Name</label><input class="form-input" id="ei_name" value="${lec.name}"></div>
-            <div class="form-group"><label class="form-label">Bot Link</label><input class="form-input" id="ei_link" value="${lec.link||''}"></div>
-            <div class="form-group"><label class="form-label">Notes Link <span style="color:var(--text3)">(optional)</span></label><input class="form-input" id="ei_notes" value="${lec.notes||''}"></div>
-            <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm)">
-              <input type="checkbox" id="ei_comingSoon" ${lec.comingSoon?'checked':''} style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)">
-              <label for="ei_comingSoon" style="font-size:13px;font-weight:500;cursor:pointer">Mark as Coming Soon 🔜</label>
-            </div>`;
-  }
-
-  document.getElementById('editModalTitle').textContent = title;
-  document.getElementById('editModalBody').innerHTML = body;
-  document.getElementById('editModal').classList.add('show');
-}
-
-function closeEdit() { document.getElementById('editModal').classList.remove('show'); }
-function closeEditOutside(e) { if (e.target.id === 'editModal') closeEdit(); }
-
-async function saveEdit() {
-  var btn = document.getElementById('editSaveBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Saving...';
-
-  var { type, bid, sid, cid, uid, lid } = _editCtx;
-  try {
-    var updated;
-    if (type === 'batch') {
-      updated = await apiFetch(`/api/batches/${bid}/edit`, 'PATCH', {
-        name: document.getElementById('ei_name').value.trim(),
-        description: document.getElementById('ei_desc').value.trim()
-      });
-      var idx = batches.findIndex(x => x._id === bid);
-      if (idx >= 0) batches[idx] = updated;
-    } else if (type === 'subject') {
-      updated = await apiFetch(`/api/batches/${bid}/subjects/${sid}/edit`, 'PATCH', {
-        name: document.getElementById('ei_name').value.trim(),
-        icon: document.getElementById('ei_icon').value.trim(),
-        color: document.getElementById('ei_color').value
-      });
-      var idx = batches.findIndex(x => x._id === bid);
-      if (idx >= 0) batches[idx] = updated;
-    } else if (type === 'chapter') {
-      updated = await apiFetch(`/api/batches/${bid}/subjects/${sid}/chapters/${cid}/edit`, 'PATCH', {
-        name: document.getElementById('ei_name').value.trim(),
-        comingSoon: document.getElementById('ei_comingSoon').checked
-      });
-      var idx = batches.findIndex(x => x._id === bid);
-      if (idx >= 0) batches[idx] = updated;
-    } else if (type === 'lecture') {
-      var url = uid
-        ? `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/units/${uid}/lectures/${lid}/edit`
-        : `/api/batches/${bid}/subjects/${sid}/chapters/${cid}/lectures/${lid}/edit`;
-      updated = await apiFetch(url, 'PATCH', {
-        name: document.getElementById('ei_name').value.trim(),
-        link: document.getElementById('ei_link').value.trim(),
-        notes: document.getElementById('ei_notes').value.trim(),
-        comingSoon: document.getElementById('ei_comingSoon').checked
-      });
-      var idx = batches.findIndex(x => x._id === bid);
-      if (idx >= 0) batches[idx] = updated;
-    }
-    renderBatches(batches);
-    populateAllSelects();
-    renderManage();
-    closeEdit();
-    toast('Saved! ✅', 'success');
-  } catch(e) {
-    toast('Error: ' + e.message, 'error');
-  }
-  btn.disabled = false;
-  btn.innerHTML = '<i class="ti ti-check"></i> Save';
 }
 
 async function delBatch(bid){if(!confirm('Batch delete?'))return;try{await apiFetch(`/api/batches/${bid}`,'DELETE');batches=batches.filter(x=>x._id!==bid);renderBatches(batches);populateAllSelects();renderManage();toast('Deleted!','success');}catch(e){toast('Error','error');}}
@@ -1801,18 +1668,6 @@ body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
 }
 #contactInner.expanded #contactText{max-width:140px;opacity:1}
 </style>
-
-
-<!-- Edit Modal -->
-<div class="modal-overlay" id="editModal" onclick="closeEditOutside(event)">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <button class="modal-close" onclick="closeEdit()"><i class="ti ti-x"></i></button>
-    <div class="modal-title"><i class="ti ti-pencil" style="color:var(--accent)"></i><span id="editModalTitle">Edit</span></div>
-    <div id="editModalBody"></div>
-    <button class="btn-add" id="editSaveBtn" onclick="saveEdit()" style="margin-top:8px"><i class="ti ti-check"></i> Save</button>
-  </div>
-</div>
 
 <!-- Contact Floating Button -->
 <div id="contactBtn" onclick="handleContact()">
