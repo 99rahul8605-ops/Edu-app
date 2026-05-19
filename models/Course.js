@@ -5,6 +5,7 @@ const lectureSchema = new mongoose.Schema({
   link: { type: String, required: true },
   notes: { type: String, default: "" }, // optional class notes link
   order: { type: Number, default: 0 },
+  comingSoon: { type: Boolean, default: false },
 });
 
 const unitSchema = new mongoose.Schema({
@@ -17,7 +18,8 @@ const chapterSchema = new mongoose.Schema({
   name: { type: String, required: true },
   order: { type: Number, default: 0 },
   units: [unitSchema],
-  lectures: [lectureSchema], // agar unit nahi hai to seedha lectures
+  lectures: [lectureSchema], // direct lectures if no units
+  comingSoon: { type: Boolean, default: false },
 });
 
 const subjectSchema = new mongoose.Schema({
@@ -30,10 +32,10 @@ const subjectSchema = new mongoose.Schema({
 
 const batchSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  pic: { type: String, default: "" }, // base64 image
+  pic: { type: String, default: "" }, // base64 encoded image
   description: { type: String, default: "" },
   order: { type: Number, default: 0 },
-  isPublic: { type: Boolean, default: false }, // private by default, owner publish karega
+  isPublic: { type: Boolean, default: false }, // private by default; owner publishes when ready
   subjects: [subjectSchema],
 });
 
