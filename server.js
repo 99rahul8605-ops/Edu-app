@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3000;
 const OWNER_ID = parseInt(process.env.OWNER_ID || "0"); // Telegram numeric user ID
 
 if (!TOKEN || !MONGO_URI || !WEB_URL || !OWNER_ID) {
-  console.error("Missing env: BOT_TOKEN, MONGO_URI, WEB_URL, OWNER_ID required hai.");
+  console.error("Missing env: BOT_TOKEN, MONGO_URI, WEB_URL, OWNER_ID are required.");
   process.exit(1);
 }
 
@@ -68,7 +68,8 @@ const PendingDelete = mongoose.model("PendingDelete", pendingDeleteSchema);
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.get("/health", (req, res) => res.status(200).json({
   status: "ok",
@@ -154,7 +155,7 @@ async function scheduleDelete(bot, chatId, messageId, deleteAt) {
       await bot.deleteMessage(chatId, messageId);
       await PendingDelete.deleteOne({ chat_id: chatId, message_id: messageId });
     } catch (err) {
-      console.error("Auto DM delete error:", err.message);
+      console.error("Auto DM deletion error:", err.message);
       await PendingDelete.deleteOne({ chat_id: chatId, message_id: messageId }).catch(() => {});
     }
   }, delay);
@@ -162,14 +163,14 @@ async function scheduleDelete(bot, chatId, messageId, deleteAt) {
 
 async function recoverPendingDeletes(bot) {
   const pending = await PendingDelete.find({});
-  console.log(`Recovering ${pending.length} pending DM deletes...`);
+  console.log(`Recovering ${pending.length} pending DM deletions...`);
   for (const p of pending) {
     const delay = Math.max(0, new Date(p.delete_at) - Date.now());
     setTimeout(async () => {
       try {
         await bot.deleteMessage(p.chat_id, p.message_id);
       } catch (err) {
-        console.error("Recovered delete error:", err.message);
+        console.error("Recovered deletion error:", err.message);
       }
       await PendingDelete.deleteOne({ _id: p._id }).catch(() => {});
       await FileRecord.updateMany({}, { $pull: { delivered_to: p.chat_id } }).catch(() => {});
@@ -182,7 +183,7 @@ async function recoverPendingDeletes(bot) {
 async function startBot() {
   // Clear old polling
   try {
-    console.log("Purani polling clear kar raha hoon...");
+    console.log("Clearing old polling...");
     const res = await fetch(
       `https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1&timeout=0`,
       { signal: AbortSignal.timeout(10000) }
@@ -228,7 +229,7 @@ async function startBot() {
     });
     console.log("Menu button set:", WEB_URL);
   } catch (err) {
-    console.warn("Menu button set failed:", err.message);
+    console.warn("Failed to set menu button:", err.message);
   }
 
   await recoverPendingDeletes(bot);
@@ -276,7 +277,7 @@ async function startBot() {
           setTimeout(async () => {
             await FileRecord.updateOne({ _id: record._id }, { $pull: { delivered_to: chatId } }).catch(() => {});
           }, 24 * 60 * 60 * 1000);
-          await bot.sendMessage(chatId, `⚠️ Ye video aapke DM se 24 ghante baad automatically delete ho jaayegi.`);
+          await bot.sendMessage(chatId, `⚠️ This video will be automatically deleted from your DM after 24 hours.`);
         }
       } catch (err) {
         console.error("Deep link error:", err.message);
@@ -287,18 +288,18 @@ async function startBot() {
 
     // No param — Web App button for everyone
     const welcomeText = isOwner(userId)
-      ? `👋 Hello Admin!\n\nNeeche button dabao aur saare lectures dekho! 📚\n\n` +
+      ? `👋 Hello Admin!\n\nTap the button below to browse all lectures! 📚\n\n` +
         `📁 File Store Commands:\n` +
-        `/bulk — bulk mode shuru karo\n` +
-        `/myfiles — saved files dekho\n` +
-        `/delete <code> — file delete karo\n` +
-        `/cancel — bulk mode band karo`
-      : `👋 Hello ${msg.from.first_name}!\n\nNeeche button dabao aur saare lectures dekho! 📚`;
+        `/bulk — start bulk upload mode\n` +
+        `/myfiles — view your saved files\n` +
+        `/delete <code> — delete a file\n` +
+        `/cancel — cancel bulk mode`
+      : `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`;
 
     bot.sendMessage(chatId, welcomeText, {
       reply_markup: {
         inline_keyboard: [[
-          { text: "📚 Lectures Dekho", web_app: { url: WEB_URL } }
+          { text: "📚 Browse Lectures", web_app: { url: WEB_URL } }
         ]]
       }
     });
@@ -315,7 +316,7 @@ async function startBot() {
 
     if (bulkSessions.has(userId)) {
       return bot.sendMessage(chatId,
-        `⚠️ Bulk mode pehle se active hai!\nFiles bhejo ya /done se complete karo.\nCancel karna ho to /cancel bhejo.`
+        `⚠️ Bulk mode is already active!\nSend files or use /done to complete.\nTo cancel use /cancel.`
       );
     }
 
@@ -323,7 +324,7 @@ async function startBot() {
       if (bulkSessions.has(userId)) {
         bulkSessions.delete(userId);
         try {
-          await bot.sendMessage(chatId, `⏰ Bulk session timeout ho gaya (5 min). Dobara /bulk se shuru karo.`);
+          await bot.sendMessage(chatId, `⏰ Bulk session timed out (5 min). Start again with /bulk.`);
         } catch (_) {}
       }
     }, BULK_TIMEOUT_MS);
@@ -331,7 +332,7 @@ async function startBot() {
     bulkSessions.set(userId, { files: [], chatId, timer });
 
     bot.sendMessage(chatId,
-      `📦 Bulk mode ON!\n\nAb saari files ek ek karke bhejo.\nSab files bhejne ke baad /done likho — ek single link milega!\n\n❌ Cancel: /cancel`
+      `📦 Bulk mode ON!\n\nSend files one by one.\nWhen done, type /done — you will get a single shareable link!\n\n❌ Cancel: /cancel`
     );
   });
 
@@ -344,16 +345,16 @@ async function startBot() {
     const session = bulkSessions.get(userId);
 
     if (!session) {
-      return bot.sendMessage(chatId, `Koi active bulk session nahi hai. Pehle /bulk se shuru karo.`);
+      return bot.sendMessage(chatId, `No active bulk session. Start one with /bulk.`);
     }
     if (session.files.length === 0) {
-      return bot.sendMessage(chatId, `⚠️ Koi file nahi bheji abhi tak! Pehle files bhejo, phir /done karo.`);
+      return bot.sendMessage(chatId, `⚠️ No files sent yet! Send files first, then use /done.`);
     }
 
     clearTimeout(session.timer);
     bulkSessions.delete(userId);
 
-    const processing = await bot.sendMessage(chatId, `⏳ Batch save ho rahi hai...`);
+    const processing = await bot.sendMessage(chatId, `⏳ Saving batch...`);
     try {
       const batchCode = await getUniqueBatchCode();
       await BulkBatch.create({ batch_code: batchCode, user_id: userId, files: session.files });
@@ -363,18 +364,18 @@ async function startBot() {
 
       const fileList = session.files.map((f, i) => `${i + 1}. ${f.file_name}`).join("\n");
       await bot.sendMessage(chatId,
-        `✅ Batch ready! ${session.files.length} files save ho gayi.\n\n📋 Files:\n${fileList}\n\nLink share karo — saari files ek saath milegi:`,
+        `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\nShare this link — all files will be delivered at once:`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 Saari Files Lo", url: link }]] } }
       );
       await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
     } catch (err) {
       console.error("Batch save error:", err.message);
       try {
-        await bot.editMessageText(`Batch save nahi hui. Dobara try karo.`, {
+        await bot.editMessageText(`Batch could not be saved. Please try again.`, {
           chat_id: chatId, message_id: processing.message_id
         });
       } catch (_) {
-        bot.sendMessage(chatId, `Batch save nahi hui. Dobara try karo.`);
+        bot.sendMessage(chatId, `Batch could not be saved. Please try again.`);
       }
     }
   });
@@ -388,12 +389,12 @@ async function startBot() {
     const session = bulkSessions.get(userId);
 
     if (!session) {
-      return bot.sendMessage(chatId, `Koi active bulk session nahi hai.`);
+      return bot.sendMessage(chatId, `No active bulk session.`);
     }
     clearTimeout(session.timer);
     bulkSessions.delete(userId);
     bot.sendMessage(chatId,
-      `❌ Bulk session cancel ho gaya.${session.files.length > 0 ? ` (${session.files.length} files discard ho gayi)` : ""}`
+      `❌ Bulk session cancelled.${session.files.length > 0 ? ` (${session.files.length} files discarded)` : ""}`
     );
   });
 
@@ -408,7 +409,7 @@ async function startBot() {
       const batches = await BulkBatch.find({ user_id: userId }).sort({ created_at: -1 }).limit(10);
 
       if (files.length === 0 && batches.length === 0) {
-        return bot.sendMessage(chatId, `Abhi tak koi file ya batch upload nahi ki.`);
+        return bot.sendMessage(chatId, `No files or batches uploaded yet.`);
       }
 
       const emoji = { document: "📄", photo: "🖼️", video: "🎬", audio: "🎵", voice: "🎤", video_note: "📹" };
@@ -429,7 +430,7 @@ async function startBot() {
 
       bot.sendMessage(chatId, text, { disable_web_page_preview: true });
     } catch (err) {
-      bot.sendMessage(chatId, `Error aaya. Dobara try karo.`);
+      bot.sendMessage(chatId, `An error occurred. Please try again.`);
     }
   });
 
@@ -445,17 +446,17 @@ async function startBot() {
         code: { $regex: new RegExp(`^${code}$`, "i") },
         uploaded_by: userId,
       });
-      if (record) return bot.sendMessage(chatId, `✅ File delete ho gayi!`);
+      if (record) return bot.sendMessage(chatId, `✅ File deleted successfully!`);
 
       const batch = await BulkBatch.findOneAndDelete({
         batch_code: { $regex: new RegExp(`^${code}$`, "i") },
         user_id: userId,
       });
-      if (batch) return bot.sendMessage(chatId, `✅ Batch delete ho gayi! (${batch.files.length} files)`);
+      if (batch) return bot.sendMessage(chatId, `✅ Batch deleted! (${batch.files.length} files)`);
 
-      bot.sendMessage(chatId, `Code nahi mila ya yeh aapka nahi hai.`);
+      bot.sendMessage(chatId, `Code not found or it does not belong to you.`);
     } catch (err) {
-      bot.sendMessage(chatId, `Delete nahi hua. Dobara try karo.`);
+      bot.sendMessage(chatId, `Deletion failed. Please try again.`);
     }
   });
 
@@ -473,7 +474,7 @@ async function startBot() {
     const messageId = parseInt(match[4], 10);
     const fromChatId = isPrivate ? parseInt(`-100${rawId}`, 10) : `@${username}`;
 
-    const processing = await bot.sendMessage(chatId, `⏳ Link se file fetch kar raha hoon...`);
+    const processing = await bot.sendMessage(chatId, `⏳ Fetching file from link...`);
     try {
       const forwarded = await bot.forwardMessage(chatId, fromChatId, messageId);
       const fileInfo  = extractFileInfo(forwarded);
@@ -481,7 +482,7 @@ async function startBot() {
       if (!fileInfo) {
         await bot.deleteMessage(chatId, forwarded.message_id).catch(() => {});
         return bot.editMessageText(
-          `⚠️ Is message mein koi file nahi mili.\n(sirf document, photo, video, audio save hoti hai)`,
+          `⚠️ No file found in that message.\n(Only documents, photos, videos, and audio are supported)`,
           { chat_id: chatId, message_id: processing.message_id }
         );
       }
@@ -493,7 +494,7 @@ async function startBot() {
         session.files.push(fileInfo);
         const count = session.files.length;
         return bot.editMessageText(
-          `✅ File ${count} bulk mein add ho gayi: ${fileInfo.file_name}\n📦 Total: ${count} file(s)\n\nAur links/files bhejo ya /done likhke link lo.`,
+          `✅ File ${count} added to bulk: ${fileInfo.file_name}\n📦 Total: ${count} file(s)\n\nSend more files/links or type /done to get the link.`,
           { chat_id: chatId, message_id: processing.message_id }
         );
       }
@@ -505,7 +506,7 @@ async function startBot() {
       });
       const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
       await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nLink pe click karo — file aa jaayegi:`,
+      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
       await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
@@ -514,11 +515,11 @@ async function startBot() {
       console.error("Link fetch error:", err.message);
       const errText =
         err.message.includes("chat not found") || err.message.includes("CHAT_ADMIN_REQUIRED")
-          ? `❌ Bot us group/channel ka member nahi hai.\nPehle bot ko wahan add karo.`
+          ? `❌ Bot is not a member of that group/channel.\nPlease add the bot there first.`
         : err.message.includes("MESSAGE_ID_INVALID") || err.message.includes("not found")
-          ? `❌ Message nahi mila. Link sahi hai?`
+          ? `❌ Message not found. Is the link correct?`
         : err.message.includes("PEER_ID_INVALID")
-          ? `❌ Is group/channel tak access nahi.\nBot ko wahan member banao.`
+          ? `❌ Cannot access this group/channel.\nPlease make the bot a member there.`
         : `❌ Error: ${err.message}`;
       try {
         await bot.editMessageText(errText, { chat_id: chatId, message_id: processing.message_id });
@@ -542,13 +543,13 @@ async function startBot() {
       session.files.push(fileInfo);
       const count = session.files.length;
       await bot.sendMessage(chatId,
-        `✅ File ${count} add ho gayi: ${fileInfo.file_name}\n📦 Total: ${count} file(s)\n\nAur files bhejo ya /done likhke link lo.`,
+        `✅ File ${count} added: ${fileInfo.file_name}\n📦 Total: ${count} file(s)\n\nSend more files or type /done to get the link.`,
         { reply_to_message_id: msg.message_id }
       );
       return;
     }
 
-    const processing = await bot.sendMessage(chatId, `⏳ Saving...`);
+    const processing = await bot.sendMessage(chatId, `⏳ Saving file...`);
     try {
       const code = await getUniqueCode();
       await FileRecord.create({
@@ -557,17 +558,17 @@ async function startBot() {
       });
       const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
       await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nLink pe click karo — file aa jaayegi:`,
+      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\nClick the link below to receive the file:`,
         { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
       await bot.sendMessage(chatId, link, { disable_web_page_preview: true });
     } catch (err) {
       console.error("Save error:", err.message);
       try {
-        await bot.editMessageText(`Save nahi hua. Dobara try karo.`, {
+        await bot.editMessageText(`File could not be saved. Please try again.`, {
           chat_id: chatId, message_id: processing.message_id
         });
-      } catch (_) { bot.sendMessage(chatId, `Save nahi hua. Dobara try karo.`); }
+      } catch (_) { bot.sendMessage(chatId, `File could not be saved. Please try again.`); }
     }
   });
 
