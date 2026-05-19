@@ -441,27 +441,27 @@ body.ready{transition:none}
 
     <!-- Add Chapter -->
     <div class="tab-content" id="tab-chapter">
-      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="cBatch" onchange="updateSubjectSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="cSubject"></select></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="cBatch" onchange="_saveSel('cBatch',this.value);updateSubjectSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="cSubject" onchange="_saveSel('cSubject',this.value)"></select></div>
       <div class="form-group"><label class="form-label">Chapter Name</label><input class="form-input" id="cName" placeholder="e.g. Chapter 1 - Algebra"></div>
       <button class="btn-add" id="btnChapter" onclick="addChapter()"><i class="ti ti-plus"></i> Add Chapter</button>
     </div>
 
     <!-- Add Unit (optional) -->
     <div class="tab-content" id="tab-unit">
-      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="uBatch" onchange="updateUSubjectSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="uSubject" onchange="updateUChapterSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Chapter</label><select class="form-select" id="uChapter"></select></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="uBatch" onchange="_saveSel('uBatch',this.value);updateUSubjectSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="uSubject" onchange="_saveSel('uSubject',this.value);updateUChapterSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Chapter</label><select class="form-select" id="uChapter" onchange="_saveSel('uChapter',this.value)"></select></div>
       <div class="form-group"><label class="form-label">Unit Name</label><input class="form-input" id="uName" placeholder="e.g. Unit 1 - Basics"></div>
       <button class="btn-add" id="btnUnit" onclick="addUnit()"><i class="ti ti-plus"></i> Add Unit</button>
     </div>
 
     <!-- Add Lecture -->
     <div class="tab-content" id="tab-lecture">
-      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="lBatch" onchange="updateLSubjectSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="lSubject" onchange="updateLChapterSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Chapter</label><select class="form-select" id="lChapter" onchange="updateLUnitSelect()"></select></div>
-      <div class="form-group"><label class="form-label">Unit (optional — leave empty if no unit)</label><select class="form-select" id="lUnit"></select></div>
+      <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="lBatch" onchange="_saveSel('lBatch',this.value);updateLSubjectSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Subject</label><select class="form-select" id="lSubject" onchange="_saveSel('lSubject',this.value);updateLChapterSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Chapter</label><select class="form-select" id="lChapter" onchange="_saveSel('lChapter',this.value);updateLUnitSelect()"></select></div>
+      <div class="form-group"><label class="form-label">Unit (optional — leave empty if no unit)</label><select class="form-select" id="lUnit" onchange="_saveSel('lUnit',this.value)"></select></div>
       <div class="form-group"><label class="form-label">Lecture Name</label><input class="form-input" id="lName" placeholder="e.g. Introduction to Limits"></div>
       <div class="form-group"><label class="form-label">Bot Link</label><input class="form-input" id="lLink" placeholder="https://t.me/YourBot?start=CODE"></div>
       <div class="form-group"><label class="form-label">Class Notes Link <span style="color:var(--text3);font-weight:400">(optional)</span></label><input class="form-input" id="lNotes" placeholder="https://t.me/YourBot?start=NOTES_CODE"></div>
@@ -962,18 +962,57 @@ function unitOpts(bid, sid, cid) {
   return c && c.units.length ? base + c.units.map(u=>`<option value="${u._id}">${u.name}</option>`).join('') : base;
 }
 
+// ── Last-selection memory (persists across tab sessions) ─────────────────────
+var _lastSel = (function() {
+  try { return JSON.parse(sessionStorage.getItem('edubot_lastsel') || '{}'); } catch(e) { return {}; }
+})();
+function _saveSel(key, val) { _lastSel[key] = val; try { sessionStorage.setItem('edubot_lastsel', JSON.stringify(_lastSel)); } catch(e){} }
+function _restoreSel(el, key) { if (el && _lastSel[key] && el.querySelector('option[value="'+_lastSel[key]+'"]')) el.value = _lastSel[key]; }
+
 function populateAllSelects() {
   var bo = batchOpts();
-  ['sBatch','cBatch','uBatch','lBatch'].forEach(id=>{ var el=document.getElementById(id); if(el) el.innerHTML=bo; });
-  updateSubjectSelect(); updateUSubjectSelect(); updateLSubjectSelect();
+  ['sBatch','cBatch','uBatch','lBatch'].forEach(id => {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = bo; _restoreSel(el, id); }
+  });
+  updateSubjectSelect();
+  updateUSubjectSelect();
+  updateLSubjectSelect();
 }
 
-function updateSubjectSelect() { document.getElementById('cSubject').innerHTML = subjectOpts(document.getElementById('cBatch').value); }
-function updateUSubjectSelect() { document.getElementById('uSubject').innerHTML = subjectOpts(document.getElementById('uBatch').value); updateUChapterSelect(); }
-function updateUChapterSelect() { document.getElementById('uChapter').innerHTML = chapterOpts(document.getElementById('uBatch').value, document.getElementById('uSubject').value); }
-function updateLSubjectSelect() { document.getElementById('lSubject').innerHTML = subjectOpts(document.getElementById('lBatch').value); updateLChapterSelect(); }
-function updateLChapterSelect() { document.getElementById('lChapter').innerHTML = chapterOpts(document.getElementById('lBatch').value, document.getElementById('lSubject').value); updateLUnitSelect(); }
-function updateLUnitSelect() { document.getElementById('lUnit').innerHTML = unitOpts(document.getElementById('lBatch').value, document.getElementById('lSubject').value, document.getElementById('lChapter').value); }
+function updateSubjectSelect() {
+  var el = document.getElementById('cSubject');
+  el.innerHTML = subjectOpts(document.getElementById('cBatch').value);
+  _restoreSel(el, 'cSubject');
+}
+function updateUSubjectSelect() {
+  var el = document.getElementById('uSubject');
+  el.innerHTML = subjectOpts(document.getElementById('uBatch').value);
+  _restoreSel(el, 'uSubject');
+  updateUChapterSelect();
+}
+function updateUChapterSelect() {
+  var el = document.getElementById('uChapter');
+  el.innerHTML = chapterOpts(document.getElementById('uBatch').value, document.getElementById('uSubject').value);
+  _restoreSel(el, 'uChapter');
+}
+function updateLSubjectSelect() {
+  var el = document.getElementById('lSubject');
+  el.innerHTML = subjectOpts(document.getElementById('lBatch').value);
+  _restoreSel(el, 'lSubject');
+  updateLChapterSelect();
+}
+function updateLChapterSelect() {
+  var el = document.getElementById('lChapter');
+  el.innerHTML = chapterOpts(document.getElementById('lBatch').value, document.getElementById('lSubject').value);
+  _restoreSel(el, 'lChapter');
+  updateLUnitSelect();
+}
+function updateLUnitSelect() {
+  var el = document.getElementById('lUnit');
+  el.innerHTML = unitOpts(document.getElementById('lBatch').value, document.getElementById('lSubject').value, document.getElementById('lChapter').value);
+  _restoreSel(el, 'lUnit');
+}
 
 function setLoading(id, on, label) {
   var b = document.getElementById(id);
