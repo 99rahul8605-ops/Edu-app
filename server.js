@@ -364,8 +364,8 @@ async function startBot() {
 
       const fileList = session.files.map((f, i) => `${i + 1}. ${f.file_name}`).join("\n");
       await bot.sendMessage(chatId,
-        `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\n🔗 Link:\n${link}`,
-        { reply_markup: { inline_keyboard: [[{ text: "📥 Saari Files Lo", url: link }]] } }
+        `✅ Batch ready! ${session.files.length} files saved.\n\n📋 Files:\n${fileList}\n\n🔗 Link:\n<code>${link}</code>`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📥 Saari Files Lo", url: link }]] } }
       );
     } catch (err) {
       console.error("Batch save error:", err.message);
@@ -554,8 +554,8 @@ async function startBot() {
       });
       const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
       await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n${link}`,
-        { reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
+      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
+        { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
 
     } catch (err) {
@@ -620,8 +620,8 @@ async function startBot() {
         });
         const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
         await bot.deleteMessage(chatId, processing.message_id);
-        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n${link}`,
-          { reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
+        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
+          { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
         );
       } catch (err) {
         console.error("Save error:", err.message);
