@@ -520,6 +520,10 @@ body.ready{transition:none}
     <span id="accessDot" class="access-dot locked" style="position:relative;display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:4px;vertical-align:middle"></span>
     Access
   </button>
+  <button class="nav-tab" id="navRefer" onclick="switchNavTab('refer')">
+    <i class="ti ti-share"></i>
+    Refer
+  </button>
 </div>
 
 <div class="sending-popup" id="sendingPopup">
@@ -916,6 +920,7 @@ async function checkAdminAccess() {
   try {
     var config = await (await fetch('/api/config')).json();
     var ownerId = config.ownerId;
+    if (config.botUsername) window._botUsername = config.botUsername;
     if (!ownerId) return;
     var tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
     var curId = tgUser ? tgUser.id : null;
@@ -1440,6 +1445,21 @@ function switchNavTab(tab) {
   currentTab = tab;
   document.getElementById('navHome').classList.toggle('active', tab === 'home');
   document.getElementById('navAccess').classList.toggle('active', tab === 'access');
+  document.getElementById('navRefer').classList.toggle('active', tab === 'refer');
+
+  if (tab === 'refer') {
+    document.querySelectorAll('.page').forEach(function(p) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateX(100%)';
+      p.classList.remove('active');
+    });
+    var refEl = document.getElementById('page-refer');
+    refEl.style.transform = '';
+    refEl.classList.add('active');
+    if (tg) tg.BackButton.hide();
+    loadReferStats();
+    return;
+  }
 
   if (tab === 'home') {
     var homeEl = document.getElementById('page-home');
@@ -1454,13 +1474,15 @@ function switchNavTab(tab) {
     // Reset pageStack so navigation works fresh from batch list
     pageStack = ['home'];
     if (tg) tg.BackButton.hide();
-  } else {
+  } else if (tab === 'access') {
     var homeEl = document.getElementById('page-home');
     var accEl = document.getElementById('page-access');
-    homeEl.style.transition = 'none';
+    document.querySelectorAll('.page').forEach(function(p) {
+      p.style.transition = 'none';
+      p.style.transform = 'translateX(100%)';
+      p.classList.remove('active');
+    });
     homeEl.style.transform = 'translateX(-25%)';
-    homeEl.classList.remove('active');
-    accEl.style.transition = 'none';
     accEl.style.transform = 'translateX(0)';
     accEl.classList.add('active');
     renderAccessCard();
@@ -1984,6 +2006,66 @@ function collapseContact(){
   _contactExpanded=false;clearTimeout(_contactTimer);
   document.getElementById('contactInner').classList.remove('expanded');
   setTimeout(function(){document.getElementById('contactIcon').textContent='💬';},300);
+}
+
+// ── Refer & Share ─────────────────────────────────────────────────────────────
+var _referLink = '';
+
+function getReferLink() {
+  var uid = getUserId();
+  if (!uid) return '';
+  return 'https://t.me/' + (window._botUsername || '') + '?start=ref_' + uid;
+}
+
+async function loadReferStats() {
+  var uid = getUserId();
+  if (!uid) return;
+
+  // Set referral link
+  _referLink = getReferLink();
+  var box = document.getElementById('referLinkBox');
+  if (box) box.textContent = _referLink || 'Open via Telegram to see your link';
+
+  // Fetch stats from server
+  try {
+    var r = await fetch('/api/refer/stats/' + uid);
+    var data = await r.json();
+    var countEl = document.getElementById('referCount');
+    var pointsEl = document.getElementById('referPoints');
+    if (countEl) countEl.textContent = data.referrals || 0;
+    if (pointsEl) pointsEl.textContent = data.points || 0;
+  } catch(e) {
+    console.error('Refer stats error:', e);
+  }
+}
+
+function copyReferLink() {
+  if (!_referLink) return toast('Open via Telegram to get your link', 'error');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(_referLink).then(function() {
+      toast('Link copied! 📋', 'success');
+    });
+  } else {
+    // Fallback
+    var el = document.createElement('textarea');
+    el.value = _referLink;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    toast('Link copied! 📋', 'success');
+  }
+}
+
+function shareReferLink() {
+  if (!_referLink) return toast('Open via Telegram to get your link', 'error');
+  if (tg && tg.switchInlineQuery) {
+    tg.switchInlineQuery('Join using my link: ' + _referLink);
+  } else if (tg && tg.openTelegramLink) {
+    tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(_referLink) + '&text=' + encodeURIComponent('Join and access free lectures! 📚'));
+  } else {
+    window.open('https://t.me/share/url?url=' + encodeURIComponent(_referLink) + '&text=' + encodeURIComponent('Join and access free lectures! 📚'));
+  }
 }
 </script>
 
