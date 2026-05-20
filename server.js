@@ -243,6 +243,25 @@ async function startBot() {
 
     // File/batch link delivery — works for everyone
     if (param) {
+      // ref_ param — record referral then show Web App button
+      if (param.startsWith("ref_")) {
+        const referrerId = param.replace("ref_", "");
+        const referredId = String(msg.from?.id || "");
+        if (referrerId && referredId && referrerId !== referredId) {
+          try {
+            await fetch(`http://localhost:${PORT}/api/refer/record`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ referrerId, referredId }),
+            });
+          } catch (_) {}
+        }
+        return bot.sendMessage(chatId,
+          `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`,
+          { reply_markup: { inline_keyboard: [[{ text: "📚 Browse Lectures", web_app: { url: WEB_URL } }]] } }
+        );
+      }
+
       if (param.startsWith("B")) {
         // Bulk batch
         try {
@@ -285,26 +304,6 @@ async function startBot() {
         bot.sendMessage(chatId, `Error occurred. Please try again.`);
       }
       return;
-    }
-
-    // ref_ param — record referral then show Web App button
-    if (param.startsWith("ref_")) {
-      const referrerId = param.replace("ref_", "");
-      const referredId = String(msg.from?.id || "");
-      if (referrerId && referredId && referrerId !== referredId) {
-        try {
-          await fetch(`http://localhost:${PORT}/api/refer/record`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ referrerId, referredId }),
-          });
-        } catch (_) {}
-      }
-      // Show Web App button and stop — don't fall into file lookup
-      return bot.sendMessage(chatId,
-        `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`,
-        { reply_markup: { inline_keyboard: [[{ text: "📚 Browse Lectures", web_app: { url: WEB_URL } }]] } }
-      );
     }
 
     // No param — Web App button for everyone
