@@ -9,11 +9,22 @@ const MONGO_URI = process.env.MONGO_URI;
 const WEB_URL = process.env.WEB_URL;
 const PORT = process.env.PORT || 3000;
 const OWNER_ID = parseInt(process.env.OWNER_ID || "0");
+// Storage channel ID where all new files will be forwarded for bot-independent storage.
+// Format: -100xxxxxxxxxx (supergroup/channel numeric ID)
+// If not set, files will be saved with direct file_id (old behavior).
+const STORAGE_CHANNEL_ID = process.env.STORAGE_CHANNEL_ID
+  ? parseInt(process.env.STORAGE_CHANNEL_ID)
+  : null;
+
 let BOT_USERNAME = ""; // Telegram numeric user ID
 
 if (!TOKEN || !MONGO_URI || !WEB_URL || !OWNER_ID) {
   console.error("Missing env: BOT_TOKEN, MONGO_URI, WEB_URL, OWNER_ID are required.");
   process.exit(1);
+}
+
+if (!STORAGE_CHANNEL_ID) {
+  console.warn("Warning: STORAGE_CHANNEL_ID not set. New files will use direct file_id (not bot-change safe).");
 }
 
 // ── Helper: is this user the owner? ─────────────────────────────────────────
@@ -137,6 +148,61 @@ function extractFileInfo(msg) {
   if (msg.voice)      return { file_id: msg.voice.file_id,      file_type: "voice",      file_name: "voice.ogg" };
   if (msg.video_note) return { file_id: msg.video_note.file_id, file_type: "video_note", file_name: "video_note.mp4" };
   return null;
+}
+
+// Forwards a file to the storage channel and returns the channel's file_id.
+// If STORAGE_CHANNEL_ID is not set or forward fails, falls back to original file_id.
+async function getStorageFileInfo(bot, originalChatId, originalMsgId, originalFileInfo) {
+  if (!STORAGE_CHANNEL_ID) return originalFileInfo;
+
+  try {
+    const forwarded = await bot.forwardMessage(STORAGE_CHANNEL_ID, originalChatId, originalMsgId);
+    const channelFileInfo = extractFileInfo(forwarded);
+    if (channelFileInfo) {
+      // Use channel file_id but keep the original file_name
+      return { ...channelFileInfo, file_name: originalFileInfo.file_name };
+    }
+    console.warn("Storage channel forward did not return a file, using original file_id.");
+    return originalFileInfo;
+  } catch (err) {
+    console.error("Failed to forward to storage channel, using original file_id:", err.message);
+    return originalFileInfo;
+  }
+}
+
+// Forwards a file_id to the storage channel by sending it first to owner chat,
+// then forwarding from there. Used when we only have file_id (not original message).
+// This is used in the TG link fetch flow where the original message was already deleted.
+async function getStorageFileInfoFromFileId(bot, ownerChatId, fileInfo) {
+  if (!STORAGE_CHANNEL_ID) return fileInfo;
+
+  try {
+    // Send the file to owner's chat temporarily so we can forward it to storage channel
+    let tempMsg;
+    switch (fileInfo.file_type) {
+      case "photo":      tempMsg = await bot.sendPhoto(ownerChatId, fileInfo.file_id); break;
+      case "video":      tempMsg = await bot.sendVideo(ownerChatId, fileInfo.file_id); break;
+      case "audio":      tempMsg = await bot.sendAudio(ownerChatId, fileInfo.file_id); break;
+      case "voice":      tempMsg = await bot.sendVoice(ownerChatId, fileInfo.file_id); break;
+      case "video_note": tempMsg = await bot.sendVideoNote(ownerChatId, fileInfo.file_id); break;
+      default:           tempMsg = await bot.sendDocument(ownerChatId, fileInfo.file_id); break;
+    }
+
+    // Forward from owner chat to storage channel
+    const forwarded = await bot.forwardMessage(STORAGE_CHANNEL_ID, ownerChatId, tempMsg.message_id);
+    const channelFileInfo = extractFileInfo(forwarded);
+
+    // Delete the temporary message from owner chat
+    await bot.deleteMessage(ownerChatId, tempMsg.message_id).catch(() => {});
+
+    if (channelFileInfo) {
+      return { ...channelFileInfo, file_name: fileInfo.file_name };
+    }
+    return fileInfo;
+  } catch (err) {
+    console.error("Failed to store file_id via storage channel, using original:", err.message);
+    return fileInfo;
+  }
 }
 
 async function sendFile(bot, chatId, record) {
@@ -402,7 +468,7 @@ async function startBot() {
     );
   });
 
-  // ── /done ────────────────────────────────────────────────────────────────────
+  // ── /done — saves all bulk session files to storage channel then creates a batch ──
   bot.onText(/\/done/, async (msg) => {
     const userId = msg.from?.id;
     if (!isOwner(userId)) return; // Silent ignore
@@ -423,7 +489,16 @@ async function startBot() {
     const processing = await bot.sendMessage(chatId, `⏳ Saving batch...`);
     try {
       const batchCode = await getUniqueBatchCode();
-      await BulkBatch.create({ batch_code: batchCode, user_id: userId, files: session.files });
+
+      // Forward each bulk file to storage channel to get stable channel file_ids.
+      // Old files in session already have their file_id from direct upload — we re-store them via channel.
+      const storedFiles = [];
+      for (const f of session.files) {
+        const storedInfo = await getStorageFileInfoFromFileId(bot, chatId, f);
+        storedFiles.push(storedInfo);
+      }
+
+      await BulkBatch.create({ batch_code: batchCode, user_id: userId, files: storedFiles });
 
       const link = `https://t.me/${BOT_USERNAME}?start=${batchCode}`;
       await bot.deleteMessage(chatId, processing.message_id);
@@ -601,10 +676,12 @@ async function startBot() {
         );
       }
 
+      // Delete the forwarded message from owner chat — we have the file_id now
       await bot.deleteMessage(chatId, forwarded.message_id).catch(() => {});
 
       const session = bulkSessions.get(userId);
       if (session) {
+        // In bulk mode — store file_id as-is in session, will be forwarded to channel on /done
         session.files.push(fileInfo);
         const count = session.files.length;
         return bot.editMessageText(
@@ -613,14 +690,21 @@ async function startBot() {
         );
       }
 
+      // Non-bulk: forward to storage channel to get a stable channel file_id
+      const storedFileInfo = await getStorageFileInfoFromFileId(bot, chatId, fileInfo);
+
       const code = await getUniqueCode();
       await FileRecord.create({
-        code, file_id: fileInfo.file_id, file_type: fileInfo.file_type,
-        file_name: fileInfo.file_name, uploaded_by: userId, expires_at: null,
+        code,
+        file_id: storedFileInfo.file_id,
+        file_type: storedFileInfo.file_type,
+        file_name: storedFileInfo.file_name,
+        uploaded_by: userId,
+        expires_at: null,
       });
       const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
       await bot.deleteMessage(chatId, processing.message_id);
-      await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
+      await bot.sendMessage(chatId, `✅ ${storedFileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
         { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📥 File Lo", url: link }]] } }
       );
 
@@ -665,7 +749,8 @@ async function startBot() {
 
     const session = bulkSessions.get(userId);
     if (session) {
-      // Bulk mode — just push immediately, order doesn't matter
+      // Bulk mode — just push immediately, order doesn't matter.
+      // Files will be forwarded to storage channel when /done is called.
       session.files.push(fileInfo);
       const count = session.files.length;
       bot.sendMessage(chatId,
@@ -679,14 +764,23 @@ async function startBot() {
     enqueueFile(userId, async () => {
       const processing = await bot.sendMessage(chatId, `⏳ Saving: ${fileInfo.file_name}...`);
       try {
+        // Forward to storage channel first to get a stable channel file_id.
+        // This way even if this bot is replaced, the new bot can serve files
+        // as long as it is an admin of the same storage channel.
+        const storedFileInfo = await getStorageFileInfo(bot, chatId, msg.message_id, fileInfo);
+
         const code = await getUniqueCode();
         await FileRecord.create({
-          code, file_id: fileInfo.file_id, file_type: fileInfo.file_type,
-          file_name: fileInfo.file_name, uploaded_by: userId, expires_at: null,
+          code,
+          file_id: storedFileInfo.file_id,
+          file_type: storedFileInfo.file_type,
+          file_name: storedFileInfo.file_name,
+          uploaded_by: userId,
+          expires_at: null,
         });
         const link = `https://t.me/${BOT_USERNAME}?start=${code}`;
         await bot.deleteMessage(chatId, processing.message_id);
-        await bot.sendMessage(chatId, `✅ ${fileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
+        await bot.sendMessage(chatId, `✅ ${storedFileInfo.file_name}\n\n🔗 Link:\n<code>${link}</code>`,
           { parse_mode: 'HTML', reply_markup: { inline_keyboard: [[{ text: "📥 Get File", url: link }]] } }
         );
       } catch (err) {
