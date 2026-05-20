@@ -390,13 +390,15 @@ router.post('/refer/record', async (req, res) => {
     const { referrerId, referredId } = req.body;
     if (!referrerId || !referredId) return res.status(400).json({ error: 'Missing fields' });
     if (referrerId === referredId) return res.status(400).json({ error: 'Cannot refer yourself' });
-    // upsert — if already referred, ignore
-    await Referral.findOneAndUpdate(
-      { referredId },
-      { referrerId, referredId },
-      { upsert: true, new: true }
-    );
-    res.json({ success: true });
+    // Must be a brand new user (never used bot before)
+    if (!req.body.isNewUser) return res.json({ success: false, isNew: false, reason: 'Not a new user' });
+
+    // Check if already referred (extra safety)
+    const existing = await Referral.findOne({ referredId });
+    if (existing) return res.json({ success: false, isNew: false, reason: 'Already referred' });
+
+    await Referral.create({ referrerId, referredId });
+    res.json({ success: true, isNew: true });
   } catch (e) {
     if (e.code === 11000) return res.json({ success: false, reason: 'Already referred' });
     res.status(500).json({ error: e.message });
