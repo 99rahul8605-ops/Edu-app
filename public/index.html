@@ -2149,12 +2149,11 @@ function copyReferLink() {
 
 function shareReferLink() {
   if (!_referLink) return toast('Open via Telegram to get your link', 'error');
-  if (tg && tg.switchInlineQuery) {
-    tg.switchInlineQuery('Join using my link: ' + _referLink);
-  } else if (tg && tg.openTelegramLink) {
-    tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(_referLink) + '&text=' + encodeURIComponent('Join and access free lectures! 📚'));
+  var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(_referLink) + '&text=' + encodeURIComponent('Join and access free lectures! 📚');
+  if (tg && tg.openLink) {
+    tg.openLink(shareUrl, { try_instant_view: false });
   } else {
-    window.open('https://t.me/share/url?url=' + encodeURIComponent(_referLink) + '&text=' + encodeURIComponent('Join and access free lectures! 📚'));
+    window.open(shareUrl, '_blank');
   }
 }
 </script>
