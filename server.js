@@ -8,7 +8,8 @@ const TOKEN = process.env.BOT_TOKEN;
 const MONGO_URI = process.env.MONGO_URI;
 const WEB_URL = process.env.WEB_URL;
 const PORT = process.env.PORT || 3000;
-const OWNER_ID = parseInt(process.env.OWNER_ID || "0"); // Telegram numeric user ID
+const OWNER_ID = parseInt(process.env.OWNER_ID || "0");
+let BOT_USERNAME = ""; // Telegram numeric user ID
 
 if (!TOKEN || !MONGO_URI || !WEB_URL || !OWNER_ID) {
   console.error("Missing env: BOT_TOKEN, MONGO_URI, WEB_URL, OWNER_ID are required.");
@@ -78,7 +79,7 @@ app.get("/health", (req, res) => res.status(200).json({
 }));
 
 app.get("/api/config", (req, res) => {
-  res.json({ ownerId: OWNER_ID });
+  res.json({ ownerId: OWNER_ID, botUsername: BOT_USERNAME || '' });
 });
 
 app.use("/api", require("./routes/course"));
@@ -211,7 +212,7 @@ async function startBot() {
 
   bot.startPolling();
   const me = await bot.getMe();
-  const BOT_USERNAME = me.username;
+  BOT_USERNAME = me.username;
   console.log(`Bot started: @${BOT_USERNAME}`);
 
   // ── Set Web App menu button ────────────────────────────────────────────────
@@ -284,6 +285,22 @@ async function startBot() {
         bot.sendMessage(chatId, `Error occurred. Please try again.`);
       }
       return;
+    }
+
+    // ref_ param — record referral silently
+    if (param.startsWith("ref_")) {
+      const referrerId = param.replace("ref_", "");
+      const referredId = String(msg.from?.id || "");
+      if (referrerId && referredId && referrerId !== referredId) {
+        try {
+          await fetch(`http://localhost:${PORT}/api/refer/record`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referrerId, referredId }),
+          });
+        } catch (_) {}
+      }
+      // Fall through to show Web App button
     }
 
     // No param — Web App button for everyone
