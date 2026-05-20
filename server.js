@@ -252,6 +252,9 @@ async function startBot() {
     const userId = msg.from?.id;
     const param = match[1].trim();
 
+    // Check if user is brand new BEFORE saving them (used for referral validation)
+    const isNewUser = userId ? !(await User.findOne({ userId: String(userId) }).catch(() => null)) : false;
+
     // Save/update user info
     if (userId) {
       User.findOneAndUpdate(
@@ -273,32 +276,32 @@ async function startBot() {
       if (param.startsWith("ref_")) {
         const referrerId = param.replace("ref_", "");
         const referredId = String(msg.from?.id || "");
-        if (referrerId && referredId && referrerId !== referredId) {
-          try {
-            await fetch(`http://localhost:${PORT}/api/refer/record`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ referrerId, referredId }),
-            });
-          } catch (_) {}
-        }
+        // referral recording handled below with isNew check
         // Notify the referred user
         bot.sendMessage(chatId,
           `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`,
           { reply_markup: { inline_keyboard: [[{ text: "📚 Browse Lectures", web_app: { url: WEB_URL } }]] } }
         );
 
-        // Notify the referrer — only if this is a new referral (not duplicate)
+        // Notify referrer ONLY if this was a brand new referral
         if (referrerId && referrerId !== String(userId)) {
           try {
-            const statsRes = await fetch(`http://localhost:${PORT}/api/refer/stats/${referrerId}`);
-            const stats = await statsRes.json();
-            const firstName = msg.from.first_name || "Someone";
-            const lastName = msg.from.last_name ? ' ' + msg.from.last_name : '';
-            bot.sendMessage(parseInt(referrerId),
-              `🎉 <b>New Referral!</b>\n\n${firstName}${lastName} joined using your referral link!\n\n⭐ <b>+1 Point earned!</b>\nYour Total Points: <b>${stats.points}</b>`,
-              { parse_mode: 'HTML' }
-            ).catch(() => {}); // Ignore if referrer has blocked the bot
+            const recordRes = await fetch(`http://localhost:${PORT}/api/refer/record`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ referrerId, referredId, isNewUser }),
+            });
+            const recordData = await recordRes.json();
+            if (recordData.isNew) {
+              const statsRes = await fetch(`http://localhost:${PORT}/api/refer/stats/${referrerId}`);
+              const stats = await statsRes.json();
+              const firstName = msg.from.first_name || "Someone";
+              const lastName = msg.from.last_name ? ' ' + msg.from.last_name : '';
+              bot.sendMessage(parseInt(referrerId),
+                `🎉 <b>New Referral!</b>\n\n${firstName}${lastName} joined using your referral link!\n\n⭐ <b>+1 Point earned!</b>\nYour Total Points: <b>${stats.points}</b>`,
+                { parse_mode: 'HTML' }
+              ).catch(() => {});
+            }
           } catch (_) {}
         }
 
