@@ -67,6 +67,17 @@ const pendingDeleteSchema = new mongoose.Schema({
 });
 const PendingDelete = mongoose.model("PendingDelete", pendingDeleteSchema);
 
+// User registry — saved on first /start
+const userSchema = new mongoose.Schema({
+  userId:    { type: String, required: true, unique: true },
+  firstName: { type: String, default: "" },
+  lastName:  { type: String, default: "" },
+  username:  { type: String, default: "" },
+  firstSeen: { type: Date,   default: Date.now },
+  lastSeen:  { type: Date,   default: Date.now },
+});
+const User = mongoose.model("User", userSchema);
+
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -241,6 +252,21 @@ async function startBot() {
     const userId = msg.from?.id;
     const param = match[1].trim();
 
+    // Save/update user info
+    if (userId) {
+      User.findOneAndUpdate(
+        { userId: String(userId) },
+        {
+          userId:    String(userId),
+          firstName: msg.from.first_name || "",
+          lastName:  msg.from.last_name  || "",
+          username:  msg.from.username   || "",
+          lastSeen:  new Date(),
+        },
+        { upsert: true, new: true }
+      ).catch(() => {});
+    }
+
     // File/batch link delivery — works for everyone
     if (param) {
       // ref_ param — record referral then show Web App button
@@ -256,10 +282,27 @@ async function startBot() {
             });
           } catch (_) {}
         }
-        return bot.sendMessage(chatId,
+        // Notify the referred user
+        bot.sendMessage(chatId,
           `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`,
           { reply_markup: { inline_keyboard: [[{ text: "📚 Browse Lectures", web_app: { url: WEB_URL } }]] } }
         );
+
+        // Notify the referrer — only if this is a new referral (not duplicate)
+        if (referrerId && referrerId !== String(userId)) {
+          try {
+            const statsRes = await fetch(`http://localhost:${PORT}/api/refer/stats/${referrerId}`);
+            const stats = await statsRes.json();
+            const firstName = msg.from.first_name || "Someone";
+            const lastName = msg.from.last_name ? ' ' + msg.from.last_name : '';
+            bot.sendMessage(parseInt(referrerId),
+              `🎉 <b>New Referral!</b>\n\n${firstName}${lastName} joined using your referral link!\n\n⭐ <b>+1 Point earned!</b>\nYour Total Points: <b>${stats.points}</b>`,
+              { parse_mode: 'HTML' }
+            ).catch(() => {}); // Ignore if referrer has blocked the bot
+          } catch (_) {}
+        }
+
+        return;
       }
 
       if (param.startsWith("B")) {
@@ -652,6 +695,71 @@ async function startBot() {
         } catch (_) { bot.sendMessage(chatId, `❌ Could not save: ${fileInfo.file_name}. Try again.`); }
       }
     });
+  });
+
+
+  // ── /stats (Owner only) ──────────────────────────────────────────────────────
+  bot.onText(/\/stats/, async (msg) => {
+    const userId = msg.from?.id;
+    if (!isOwner(userId)) return;
+
+    const chatId = msg.chat.id;
+    const processing = await bot.sendMessage(chatId, '⏳ Fetching stats...');
+
+    try {
+      const [statsRes, filesRes, bulkRes] = await Promise.all([
+        fetch(`http://localhost:${PORT}/api/stats`),
+        FileRecord.countDocuments({}),
+        BulkBatch.countDocuments({}),
+      ]);
+
+      const s = await statsRes.json();
+
+      const uptime = process.uptime();
+      const h = Math.floor(uptime / 3600);
+      const m = Math.floor((uptime % 3600) / 60);
+
+      const text =
+`📊 <b>Bot Stats</b>
+
+👤 <b>Users</b>
+• Total Users: ${s.users.totalUsers}
+• New This Week: ${s.users.recentUsers}
+
+📚 <b>Content</b>
+• Batches: ${s.content.totalBatches} (🟢 ${s.content.publicBatches} public · 🔒 ${s.content.privateBatches} private)
+• Subjects: ${s.content.totalSubjects}
+• Chapters: ${s.content.totalChapters}
+• Lectures: ${s.content.totalLectures}
+
+📁 <b>File Store</b>
+• Single Files: ${filesRes}
+• Bulk Batches: ${bulkRes}
+
+🔑 <b>Access</b>
+• Total Issued: ${s.access.totalAccess}
+• Currently Active: ${s.access.activeAccess}
+
+👥 <b>Referrals</b>
+• Total Referrals: ${s.referrals.totalReferrals}
+• Unique Referrers: ${s.referrals.uniqueReferrers}
+
+⚙️ <b>Server</b>
+• Uptime: ${h}h ${m}m
+• Node: ${process.version}
+• DB: ${require('mongoose').connection.readyState === 1 ? '🟢 Connected' : '🔴 Disconnected'}`;
+
+      await bot.editMessageText(text, {
+        chat_id: chatId,
+        message_id: processing.message_id,
+        parse_mode: 'HTML',
+      });
+    } catch (err) {
+      console.error('Stats error:', err.message);
+      bot.editMessageText('❌ Could not fetch stats. Try again.', {
+        chat_id: chatId, message_id: processing.message_id,
+      });
+    }
   });
 
   // ── Polling error ────────────────────────────────────────────────────────────
