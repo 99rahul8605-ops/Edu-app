@@ -287,7 +287,7 @@ async function startBot() {
       return;
     }
 
-    // ref_ param — record referral silently
+    // ref_ param — record referral then show Web App button
     if (param.startsWith("ref_")) {
       const referrerId = param.replace("ref_", "");
       const referredId = String(msg.from?.id || "");
@@ -300,7 +300,11 @@ async function startBot() {
           });
         } catch (_) {}
       }
-      // Fall through to show Web App button
+      // Show Web App button and stop — don't fall into file lookup
+      return bot.sendMessage(chatId,
+        `👋 Hello ${msg.from.first_name}!\n\nTap the button below to browse all lectures! 📚`,
+        { reply_markup: { inline_keyboard: [[{ text: "📚 Browse Lectures", web_app: { url: WEB_URL } }]] } }
+      );
     }
 
     // No param — Web App button for everyone
