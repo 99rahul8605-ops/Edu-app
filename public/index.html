@@ -526,6 +526,96 @@ body.ready{transition:none}
   </button>
 </div>
 
+<!-- Refer Page -->
+<div class="page" id="page-refer">
+  <div class="page-header">
+    <div class="page-title"><i class="ti ti-share" style="color:var(--accent)"></i> Share & Refer</div>
+  </div>
+  <div class="page-body">
+
+    <!-- Referral link card -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text)">🔗 Your Referral Link</div>
+      <div id="referLinkBox" style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;font-family:monospace;color:var(--accent);word-break:break-all;margin-bottom:10px">Loading...</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-add" style="flex:1" onclick="copyReferLink()"><i class="ti ti-copy"></i> Copy Link</button>
+        <button class="btn-add" style="flex:1;background:var(--surface2);color:var(--text)" onclick="shareReferLink()"><i class="ti ti-brand-telegram"></i> Share</button>
+      </div>
+    </div>
+
+    <!-- Stats card -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text)">📊 Your Stats</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px 12px;text-align:center">
+          <div id="referCount" style="font-size:28px;font-weight:700;color:var(--accent)">–</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Total Referrals</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px 12px;text-align:center">
+          <div id="referPoints" style="font-size:28px;font-weight:700;color:#f59e0b">–</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">Points Earned</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rewards card -->
+    <div class="card" style="margin-bottom:14px;border:1px solid rgba(245,158,11,0.25)">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">🎁 Rewards</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px">
+        <span style="font-size:22px">🏆</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">Free Access Pass</div>
+          <div style="font-size:11px;color:var(--text2)">Redeem with points for free lecture access</div>
+        </div>
+        <span class="coming-soon-badge" style="margin-left:auto">🔜 Soon</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px">
+        <span style="font-size:22px">⭐</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">Bonus Points</div>
+          <div style="font-size:11px;color:var(--text2)">Extra points for milestone referrals</div>
+        </div>
+        <span class="coming-soon-badge" style="margin-left:auto">🔜 Soon</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm)">
+        <span style="font-size:22px">🎟️</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">Special Batch Access</div>
+          <div style="font-size:11px;color:var(--text2)">Unlock premium batches with points</div>
+        </div>
+        <span class="coming-soon-badge" style="margin-left:auto">🔜 Soon</span>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text3);text-align:center">
+        Each referral = <strong style="color:#f59e0b">1 point</strong> · Rewards launching soon!
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">ℹ️ How It Works</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div style="font-size:12px;color:var(--text2)">Copy your unique referral link above</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+          <div style="font-size:12px;color:var(--text2)">Share it with your friends</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+          <div style="font-size:12px;color:var(--text2)">When they open the bot using your link, you get <strong style="color:#f59e0b">1 point</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+          <div style="font-size:12px;color:var(--text2)">Redeem points for rewards (coming soon!)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div class="sending-popup" id="sendingPopup">
   <div class="sending-dot"></div>
   <span class="sending-text">Lecture sent to your Telegram! 📩</span>
