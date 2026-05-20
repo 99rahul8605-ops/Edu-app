@@ -402,3 +402,48 @@ router.post('/refer/record', async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// ── Stats API (owner only via bot) ───────────────────────────────────────────
+router.get('/stats', async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Batch/content stats
+    const batches = await Batch.find({});
+    const totalBatches   = batches.length;
+    const publicBatches  = batches.filter(b => b.isPublic).length;
+    const privateBatches = totalBatches - publicBatches;
+    let totalSubjects = 0, totalChapters = 0, totalLectures = 0;
+    batches.forEach(b => {
+      totalSubjects += b.subjects.length;
+      b.subjects.forEach(s => {
+        totalChapters += s.chapters.length;
+        s.chapters.forEach(c => {
+          totalLectures += c.lectures.length;
+          c.units.forEach(u => { totalLectures += u.lectures.length; });
+        });
+      });
+    });
+
+    // User stats — requires User model from server.js via mongoose
+    const mongoose = require('mongoose');
+    const UserModel = mongoose.models.User;
+    const totalUsers  = UserModel ? await UserModel.countDocuments({}) : 'N/A';
+    const recentUsers = UserModel ? await UserModel.countDocuments({ firstSeen: { $gte: new Date(Date.now() - 7*24*60*60*1000) } }) : 'N/A';
+
+    // Access stats
+    const totalAccess      = await Access.countDocuments({});
+    const activeAccess     = await Access.countDocuments({ expiresAt: { $gt: now } });
+
+    // Referral stats
+    const totalReferrals   = await Referral.countDocuments({});
+    const uniqueReferrers  = await Referral.distinct('referrerId');
+
+    res.json({
+      content:   { totalBatches, publicBatches, privateBatches, totalSubjects, totalChapters, totalLectures },
+      users:     { totalUsers, recentUsers },
+      access:    { totalAccess, activeAccess },
+      referrals: { totalReferrals, uniqueReferrers: uniqueReferrers.length },
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
