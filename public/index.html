@@ -618,7 +618,7 @@ body.ready{transition:none}
 
 <div class="sending-popup" id="sendingPopup">
   <div class="sending-dot"></div>
-  <span class="sending-text">Lecture sent to your Telegram! 📩</span>
+  <span class="sending-text">Lecture delivered to your bot! Check Telegram now 📩</span>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -907,7 +907,7 @@ function openLink(url, type) {
 function showSendingPopup(type) {
   var p = document.getElementById('sendingPopup');
   var txt = p.querySelector('.sending-text');
-  txt.textContent = type === 'notes' ? 'Class notes sent to your Telegram! 📝' : 'Lecture sent to your Telegram! 📩';
+  txt.textContent = type === 'notes' ? 'Notes delivered to your bot! Check Telegram now 📝' : 'Lecture delivered to your bot! Check Telegram now 📩';
   p.classList.add('show');
   setTimeout(() => p.classList.remove('show'), 2500);
 }
