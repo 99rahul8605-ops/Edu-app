@@ -150,57 +150,38 @@ function extractFileInfo(msg) {
   return null;
 }
 
-// Forwards a file to the storage channel and returns the channel's file_id.
-// If STORAGE_CHANNEL_ID is not set or forward fails, falls back to original file_id.
-async function getStorageFileInfo(bot, originalChatId, originalMsgId, originalFileInfo) {
-  if (!STORAGE_CHANNEL_ID) return originalFileInfo;
-
-  try {
-    const forwarded = await bot.forwardMessage(STORAGE_CHANNEL_ID, originalChatId, originalMsgId);
-    const channelFileInfo = extractFileInfo(forwarded);
-    if (channelFileInfo) {
-      // Use channel file_id but keep the original file_name
-      return { ...channelFileInfo, file_name: originalFileInfo.file_name };
-    }
-    console.warn("Storage channel forward did not return a file, using original file_id.");
-    return originalFileInfo;
-  } catch (err) {
-    console.error("Failed to forward to storage channel, using original file_id:", err.message);
-    return originalFileInfo;
-  }
-}
-
-// Forwards a file_id to the storage channel by sending it first to owner chat,
-// then forwarding from there. Used when we only have file_id (not original message).
-// This is used in the TG link fetch flow where the original message was already deleted.
-async function getStorageFileInfoFromFileId(bot, ownerChatId, fileInfo) {
+// Sends a file directly to the storage channel and returns the channel's file_id.
+// Sending directly (not forwarding) guarantees the response contains the file object
+// with a stable channel-scoped file_id. This file_id works with any bot that is
+// an admin of the same storage channel, so bot replacement won't break delivery.
+// Falls back to original fileInfo if STORAGE_CHANNEL_ID is not set or send fails.
+async function saveToStorageChannel(bot, fileInfo) {
   if (!STORAGE_CHANNEL_ID) return fileInfo;
 
   try {
-    // Send the file to owner's chat temporarily so we can forward it to storage channel
-    let tempMsg;
+    let sentMsg;
+    // Send file directly to channel using the current file_id.
+    // The API response will contain the new channel-scoped file_id.
     switch (fileInfo.file_type) {
-      case "photo":      tempMsg = await bot.sendPhoto(ownerChatId, fileInfo.file_id); break;
-      case "video":      tempMsg = await bot.sendVideo(ownerChatId, fileInfo.file_id); break;
-      case "audio":      tempMsg = await bot.sendAudio(ownerChatId, fileInfo.file_id); break;
-      case "voice":      tempMsg = await bot.sendVoice(ownerChatId, fileInfo.file_id); break;
-      case "video_note": tempMsg = await bot.sendVideoNote(ownerChatId, fileInfo.file_id); break;
-      default:           tempMsg = await bot.sendDocument(ownerChatId, fileInfo.file_id); break;
+      case "photo":      sentMsg = await bot.sendPhoto(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
+      case "video":      sentMsg = await bot.sendVideo(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
+      case "audio":      sentMsg = await bot.sendAudio(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
+      case "voice":      sentMsg = await bot.sendVoice(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
+      case "video_note": sentMsg = await bot.sendVideoNote(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
+      default:           sentMsg = await bot.sendDocument(STORAGE_CHANNEL_ID, fileInfo.file_id); break;
     }
 
-    // Forward from owner chat to storage channel
-    const forwarded = await bot.forwardMessage(STORAGE_CHANNEL_ID, ownerChatId, tempMsg.message_id);
-    const channelFileInfo = extractFileInfo(forwarded);
-
-    // Delete the temporary message from owner chat
-    await bot.deleteMessage(ownerChatId, tempMsg.message_id).catch(() => {});
-
+    // Extract the channel file_id from the sent message response
+    const channelFileInfo = extractFileInfo(sentMsg);
     if (channelFileInfo) {
+      // Keep the original file_name, use channel's file_id and file_type
       return { ...channelFileInfo, file_name: fileInfo.file_name };
     }
+
+    console.warn("saveToStorageChannel: could not extract file_id from channel response, using original.");
     return fileInfo;
   } catch (err) {
-    console.error("Failed to store file_id via storage channel, using original:", err.message);
+    console.error("saveToStorageChannel failed, using original file_id:", err.message);
     return fileInfo;
   }
 }
@@ -490,11 +471,10 @@ async function startBot() {
     try {
       const batchCode = await getUniqueBatchCode();
 
-      // Forward each bulk file to storage channel to get stable channel file_ids.
-      // Old files in session already have their file_id from direct upload — we re-store them via channel.
+      // Send each bulk file to storage channel to get stable channel-scoped file_ids.
       const storedFiles = [];
       for (const f of session.files) {
-        const storedInfo = await getStorageFileInfoFromFileId(bot, chatId, f);
+        const storedInfo = await saveToStorageChannel(bot, f);
         storedFiles.push(storedInfo);
       }
 
@@ -690,8 +670,8 @@ async function startBot() {
         );
       }
 
-      // Non-bulk: forward to storage channel to get a stable channel file_id
-      const storedFileInfo = await getStorageFileInfoFromFileId(bot, chatId, fileInfo);
+      // Non-bulk: send to storage channel to get a stable channel file_id
+      const storedFileInfo = await saveToStorageChannel(bot, fileInfo);
 
       const code = await getUniqueCode();
       await FileRecord.create({
@@ -764,10 +744,10 @@ async function startBot() {
     enqueueFile(userId, async () => {
       const processing = await bot.sendMessage(chatId, `⏳ Saving: ${fileInfo.file_name}...`);
       try {
-        // Forward to storage channel first to get a stable channel file_id.
+        // Send file to storage channel to get a stable channel-scoped file_id.
         // This way even if this bot is replaced, the new bot can serve files
         // as long as it is an admin of the same storage channel.
-        const storedFileInfo = await getStorageFileInfo(bot, chatId, msg.message_id, fileInfo);
+        const storedFileInfo = await saveToStorageChannel(bot, fileInfo);
 
         const code = await getUniqueCode();
         await FileRecord.create({
