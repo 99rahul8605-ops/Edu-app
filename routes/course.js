@@ -365,3 +365,40 @@ router.post("/access/claim/:userId", async (req, res) => {
     res.json({ hasAccess: true, expiresAt });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ── Referral System ───────────────────────────────────────────────────────────
+const referralSchema = new mongoose.Schema({
+  referrerId: { type: String, required: true },  // who shared the link
+  referredId: { type: String, required: true },  // who joined
+  createdAt:  { type: Date, default: Date.now },
+});
+referralSchema.index({ referrerId: 1 });
+referralSchema.index({ referredId: 1 }, { unique: true }); // each user can only be referred once
+const Referral = mongoose.model('Referral', referralSchema);
+
+// Get refer stats for a user
+router.get('/refer/stats/:userId', async (req, res) => {
+  try {
+    const referrals = await Referral.countDocuments({ referrerId: req.params.userId });
+    res.json({ referrals, points: referrals }); // 1 referral = 1 point
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Record a referral (called by bot when someone joins via ref link)
+router.post('/refer/record', async (req, res) => {
+  try {
+    const { referrerId, referredId } = req.body;
+    if (!referrerId || !referredId) return res.status(400).json({ error: 'Missing fields' });
+    if (referrerId === referredId) return res.status(400).json({ error: 'Cannot refer yourself' });
+    // upsert — if already referred, ignore
+    await Referral.findOneAndUpdate(
+      { referredId },
+      { referrerId, referredId },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  } catch (e) {
+    if (e.code === 11000) return res.json({ success: false, reason: 'Already referred' });
+    res.status(500).json({ error: e.message });
+  }
+});
