@@ -1276,7 +1276,7 @@ function _renderManageLevel() {
           <div class="manage-item-sub">${sub}</div>
         </div>
         <button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${ch._id}','${uid||''}','${l._id}')"><i class="ti ti-pencil"></i></button>
-        <button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${ch._id}','${uid||''}','${l._id}')"><i class="ti ti-trash"></i></button>
+        <button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${ch._id}','${uid||null}','${l._id}')"><i class="ti ti-trash"></i></button>
       </div>`;
     });
   }
