@@ -300,6 +300,42 @@ router.patch("/batches/:bid/subjects/:sid/chapters/:cid/units/:uid/lectures/:lid
 module.exports = router;
 
 
+// ── Announcement Schema ───────────────────────────────────────────────────────
+const announcementSchema = new mongoose.Schema({
+  emoji:     { type: String, default: "📢" },
+  heading:   { type: String, required: true },
+  body:      { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+});
+const Announcement = mongoose.model("Announcement", announcementSchema);
+
+// GET all announcements (public — all users can see)
+router.get("/announcements", async (req, res) => {
+  try {
+    const announcements = await Announcement.find().sort({ createdAt: -1 }).limit(20);
+    res.json(announcements);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST new announcement (admin only)
+router.post("/announcements", verifyAdmin, async (req, res) => {
+  try {
+    const { emoji, heading, body } = req.body;
+    if (!heading || !body) return res.status(400).json({ error: "heading and body required" });
+    const ann = await Announcement.create({ emoji: emoji || "📢", heading, body });
+    res.json(ann);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE announcement (admin only)
+router.delete("/announcements/:id", verifyAdmin, async (req, res) => {
+  try {
+    await Announcement.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
 // ── Ad Token Schema ───────────────────────────────────────────────────────────
 
 const adTokenSchema = new mongoose.Schema({
