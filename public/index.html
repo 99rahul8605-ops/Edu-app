@@ -1682,9 +1682,7 @@ function startCountdown() {
 }
 
 var _adToken = null;
-var _adTimer = null;
-var _adRemaining = 0;
-var _adActuallyShown = false; // true only when ad SDK confirms the ad was displayed
+var _adActuallyShown = false;
 
 async function watchAd() {
   if (hasAccess()) {
@@ -1698,7 +1696,7 @@ async function watchAd() {
     btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Loading Ad...';
   }
 
-  // Step 1: Get token from server
+  // Step 1: Get server token — proves ad attempt was initiated server-side
   try {
     userId = getUserId();
     var r = await fetch('/api/access/token/' + userId, { method: 'POST' });
@@ -1711,106 +1709,65 @@ async function watchAd() {
     return;
   }
 
-  // Reset ad shown flag before every attempt
   _adActuallyShown = false;
 
-  // Step 2: Show the ad
-  function tryShowAd(attemptsLeft) {
-    if (typeof show_11011844 !== 'undefined') {
-      var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
-
-      show_11011844({
-        type: 'inApp',
-        ymid: uid,
-        inAppSettings: { frequency: 1, capping: 0.1, interval: 30, timeout: 3, everyPage: false },
-        // onShow fires only when the ad is actually rendered — ad blocker prevents this
-        onShow: function() {
-          _adActuallyShown = true;
-        },
-        // onClose / onComplete — ad finished or closed
-        onClose: function() {
-          if (!_adActuallyShown) {
-            // SDK ran but ad never rendered — likely blocked
-            _adToken = null;
-            if (_adTimer) { clearInterval(_adTimer); _adTimer = null; }
-            adWatched = false;
-            renderAccessCard();
-            toast('Ad blocker detected! Please disable it and try again.', 'error');
-          }
-        }
-      });
-
-      // Step 3: Server-side enforced timer
-      var AD_MIN_SECONDS = 15;
-      _adRemaining = AD_MIN_SECONDS;
-
-      if (btn) btn.innerHTML = '<i class="ti ti-player-play"></i> Ad is playing... (' + _adRemaining + 's)';
-
-      if (_adTimer) clearInterval(_adTimer);
-      _adTimer = setInterval(function() {
-        // If 5 seconds in and ad never actually showed — blocker detected, stop timer
-        if (_adRemaining <= AD_MIN_SECONDS - 5 && !_adActuallyShown) {
-          clearInterval(_adTimer);
-          _adTimer = null;
-          _adToken = null;
-          adWatched = false;
-          renderAccessCard();
-          toast('Ad blocker detected! Please disable it and try again.', 'error');
-          return;
-        }
-        _adRemaining--;
-        if (btn) btn.innerHTML = '<i class="ti ti-player-play"></i> Ad is playing... (' + _adRemaining + 's)';
-        if (_adRemaining <= 0) {
-          clearInterval(_adTimer);
-          _adTimer = null;
-          // Final check — ad must have actually shown
-          if (!_adActuallyShown) {
-            _adToken = null;
-            adWatched = false;
-            renderAccessCard();
-            toast('Ad blocker detected! Please disable it and try again.', 'error');
-            return;
-          }
-          adWatched = true;
-          renderAccessCard();
-          toast('Ad complete! Now claim your access. 👇', 'success');
-        }
-      }, 1000);
-
-    } else if (attemptsLeft > 0) {
-      setTimeout(function() { tryShowAd(attemptsLeft - 1); }, 500);
-    } else {
-      // Ad SDK itself failed to load (blocked entirely)
-      _adToken = null;
-      toast('Ad failed to load. Please disable your ad blocker and try again.', 'error');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
-    }
+  // Step 2: Check SDK loaded
+  if (typeof show_11011844 === 'undefined') {
+    _adToken = null;
+    toast('Ad failed to load. Please disable your ad blocker and try again.', 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
+    return;
   }
 
-  tryShowAd(10);
+  if (btn) btn.innerHTML = '<i class="ti ti-player-play"></i> Ad is loading...';
+
+  var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
+
+  // Step 3: Show Rewarded Interstitial — Promise resolves only when user watches ad
+  // .then() = ad successfully watched → allow claim
+  // .catch() = ad not available / skipped / blocked → deny claim
+  show_11011844({ ymid: uid })
+    .then(function() {
+      // Ad was actually watched — mark as shown and allow claim
+      _adActuallyShown = true;
+      adWatched = true;
+      renderAccessCard();
+      toast('Ad complete! Now claim your access. 👇', 'success');
+    })
+    .catch(function(err) {
+      // Ad failed, no inventory, or was skipped — deny reward
+      _adToken = null;
+      _adActuallyShown = false;
+      adWatched = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access';
+      }
+      // Show helpful message based on error
+      var msg = (err && err.message) || '';
+      if (msg.toLowerCase().indexOf('block') !== -1 || msg.toLowerCase().indexOf('load') !== -1) {
+        toast('Ad blocker detected! Please disable it and try again.', 'error');
+      } else {
+        toast('No ad available right now. Please try again in a moment.', 'error');
+      }
+    });
 }
 
 async function claimAccess() {
-  // Token check — if ad was blocked, token will be null
+  // Token check — if ad was blocked or failed, token will be null
   if (!_adToken) {
-    toast('Ad did not play properly. Please disable your ad blocker and try again.', 'error');
+    toast('Ad did not play properly. Please try again.', 'error');
     adWatched = false;
     renderAccessCard();
     return;
   }
 
-  // Ad must have actually been shown — not just timer elapsed
+  // Ad must have been confirmed by Monetag SDK Promise
   if (!_adActuallyShown) {
-    toast('Ad blocker detected! Please disable it and try again.', 'error');
+    toast('Ad was not completed. Please watch the full ad.', 'error');
     _adToken = null;
     adWatched = false;
     renderAccessCard();
-    return;
-  }
-
-  // Timer check — claim not allowed before 15 seconds
-  if (_adRemaining > 0) {
-    toast('Ad is still playing. Please wait...', 'error');
     return;
   }
 
