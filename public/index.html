@@ -222,6 +222,7 @@ body.ready{transition:none}
       <div><div style="font-size:15px;font-weight:700">EduBot</div><div style="font-size:10px;color:var(--text2)">Select Batch</div></div>
     </div>
     <button class="admin-btn" id="adminBtn" onclick="openAdmin()"><i class="ti ti-settings" style="font-size:13px"></i> Admin</button>
+    <button class="bell-btn" id="bellBtn" onclick="openAnnouncements()"><i class="ti ti-bell"></i><span class="bell-badge" id="bellBadge"></span></button>
     <div class="theme-toggle">
       <label class="toggle-switch" title="Toggle light/dark mode">
         <input type="checkbox" id="themeToggle" onchange="toggleTheme(this.checked)">
@@ -1276,7 +1277,7 @@ function _renderManageLevel() {
           <div class="manage-item-sub">${sub}</div>
         </div>
         <button class="edit-btn" onclick="openEdit('lecture','${b._id}','${s._id}','${ch._id}','${uid||''}','${l._id}')"><i class="ti ti-pencil"></i></button>
-        <button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${ch._id}','${uid||null}','${l._id}')"><i class="ti ti-trash"></i></button>
+        <button class="del-btn" onclick="delLecture('${b._id}','${s._id}','${ch._id}','${uid||''}','${l._id}')"><i class="ti ti-trash"></i></button>
       </div>`;
     });
   }
@@ -1696,7 +1697,6 @@ async function watchAd() {
     btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Loading Ad...';
   }
 
-  // Step 1: Get server token — proves ad attempt was initiated server-side
   try {
     userId = getUserId();
     var r = await fetch('/api/access/token/' + userId, { method: 'POST' });
@@ -1711,7 +1711,6 @@ async function watchAd() {
 
   _adActuallyShown = false;
 
-  // Step 2: Check SDK loaded
   if (typeof show_11011844 === 'undefined') {
     _adToken = null;
     toast('Ad failed to load. Please disable your ad blocker and try again.', 'error');
@@ -1723,27 +1722,19 @@ async function watchAd() {
 
   var uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? String(tg.initDataUnsafe.user.id) : 'unknown';
 
-  // Step 3: Show Rewarded Interstitial — Promise resolves only when user watches ad
-  // .then() = ad successfully watched → allow claim
-  // .catch() = ad not available / skipped / blocked → deny claim
+  // Monetag Promise — .then() = ad watched, .catch() = failed/no inventory/blocked
   show_11011844({ ymid: uid })
     .then(function() {
-      // Ad was actually watched — mark as shown and allow claim
       _adActuallyShown = true;
       adWatched = true;
       renderAccessCard();
       toast('Ad complete! Now claim your access. 👇', 'success');
     })
     .catch(function(err) {
-      // Ad failed, no inventory, or was skipped — deny reward
       _adToken = null;
       _adActuallyShown = false;
       adWatched = false;
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access';
-      }
-      // Show helpful message based on error
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> Watch Ad — Get 24h Access'; }
       var msg = (err && err.message) || '';
       if (msg.toLowerCase().indexOf('block') !== -1 || msg.toLowerCase().indexOf('load') !== -1) {
         toast('Ad blocker detected! Please disable it and try again.', 'error');
@@ -1754,15 +1745,12 @@ async function watchAd() {
 }
 
 async function claimAccess() {
-  // Token check — if ad was blocked or failed, token will be null
   if (!_adToken) {
     toast('Ad did not play properly. Please try again.', 'error');
     adWatched = false;
     renderAccessCard();
     return;
   }
-
-  // Ad must have been confirmed by Monetag SDK Promise
   if (!_adActuallyShown) {
     toast('Ad was not completed. Please watch the full ad.', 'error');
     _adToken = null;
@@ -1817,7 +1805,7 @@ openBatch = function(bid) {
 async function init() {
   initTheme();
   await checkAdminAccess();
-  await Promise.all([load(), loadAccess()]);
+  await Promise.all([load(), loadAccess(), loadAnnouncements()]);
   // Update access indicator dot
   var dot = document.getElementById('accessDot');
   if (dot) dot.style.background = hasAccess() ? 'var(--green)' : 'var(--red)';
@@ -2039,6 +2027,34 @@ body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
 .flicker-reload-btn:active{opacity:0.75}
 .flicker-reload-btn i{font-size:12px}
 
+/* ── Announcement Bell ───────────────────────────── */
+.bell-btn{position:relative;width:36px;height:36px;border-radius:50%;background:var(--surface2);border:none;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:background 0.2s}
+.bell-btn:active{background:var(--surface3)}
+.bell-badge{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--red);border:2px solid var(--topbar);display:none}
+.bell-badge.show{display:block}
+.ann-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:flex-end;justify-content:center}
+.ann-overlay.show{display:flex}
+.ann-modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;position:relative;padding-bottom:24px}
+.ann-modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:16px auto 0;display:block}
+.ann-modal-close{position:absolute;right:16px;top:32px;background:var(--surface2);border:none;color:var(--text2);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ann-title-wrap{display:flex;align-items:center;gap:8px;padding:16px 16px 12px}
+.ann-title-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,rgba(79,142,247,0.2),rgba(124,92,191,0.2));border:1px solid rgba(79,142,247,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ann-title-text{font-size:16px;font-weight:700;color:var(--text)}
+.ann-title-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.ann-card{margin:0 16px 12px;border-radius:14px;overflow:hidden;border:1px solid rgba(79,142,247,0.2);background:linear-gradient(135deg,rgba(79,142,247,0.06),rgba(124,92,191,0.04))}
+.ann-card-top{padding:14px 16px 10px;display:flex;align-items:flex-start;gap:10px}
+.ann-card-emoji{font-size:24px;flex-shrink:0;margin-top:2px}
+.ann-card-info{flex:1;min-width:0}
+.ann-card-heading{font-size:14px;font-weight:700;color:var(--text);line-height:1.4}
+.ann-card-body{font-size:13px;color:var(--text2);line-height:1.6;margin-top:5px;white-space:pre-wrap;word-break:break-word}
+.ann-card-footer{padding:8px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(79,142,247,0.12);margin-top:2px}
+.ann-card-date{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.ann-new-badge{font-size:10px;font-weight:700;color:#fff;background:var(--red);border-radius:20px;padding:2px 8px;letter-spacing:0.3px}
+.ann-empty{text-align:center;padding:40px 20px;color:var(--text2)}
+.ann-empty i{font-size:40px;color:var(--text3);display:block;margin-bottom:10px}
+.ann-admin-form{margin:0 16px 16px;padding:14px;background:var(--surface2);border-radius:12px;border:1px solid var(--border)}
+.ann-admin-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:5px}
+
 /* ── Contact Button ───────────────────────────── */
 #contactBtn{position:fixed;bottom:80px;right:16px;z-index:300;cursor:pointer;user-select:none}
 #contactInner{
@@ -2068,6 +2084,33 @@ body.light-mode .lec-mini-notes{background:var(--surface2);color:var(--text)}
     <div class="modal-title"><i class="ti ti-pencil" style="color:var(--accent)"></i><span id="editModalTitle">Edit</span></div>
     <div id="editModalBody"></div>
     <button class="btn-add" id="editSaveBtn" onclick="saveEdit()" style="margin-top:8px"><i class="ti ti-check"></i> Save</button>
+  </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="ann-overlay" id="annModal" onclick="closeAnnOutside(event)">
+  <div class="ann-modal">
+    <span class="ann-modal-handle"></span>
+    <button class="ann-modal-close" onclick="closeAnnouncements()"><i class="ti ti-x"></i></button>
+    <div class="ann-title-wrap">
+      <div class="ann-title-icon">🔔</div>
+      <div>
+        <div class="ann-title-text">Announcements</div>
+        <div class="ann-title-sub">Latest updates from admin</div>
+      </div>
+    </div>
+    <div class="ann-admin-form" id="annAdminForm" style="display:none">
+      <div class="ann-admin-title"><i class="ti ti-pencil" style="color:var(--accent)"></i> Post New Announcement</div>
+      <div class="form-group" style="margin-bottom:8px;display:flex;gap:8px">
+        <input class="form-input" id="annEmojiInput" placeholder="📢" maxlength="4" style="font-size:18px;width:60px;flex-shrink:0">
+        <input class="form-input" id="annHeadingInput" placeholder="Heading" style="flex:1">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <textarea class="form-input" id="annBodyInput" placeholder="Write your announcement here..." rows="3" style="resize:none;font-family:inherit"></textarea>
+      </div>
+      <button class="btn-add" onclick="postAnnouncement()" id="annPostBtn"><i class="ti ti-send"></i> Post</button>
+    </div>
+    <div id="annList"></div>
   </div>
 </div>
 
@@ -2157,6 +2200,132 @@ function shareReferLink() {
     tg.openLink(shareUrl, { try_instant_view: false });
   } else {
     window.open(shareUrl, '_blank');
+  }
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────────
+
+var _announcements = [];
+
+async function loadAnnouncements() {
+  try {
+    var r = await fetch('/api/announcements');
+    _announcements = await r.json() || [];
+    _updateBellBadge();
+  } catch(e) {
+    console.error('Announcements load error:', e);
+  }
+}
+
+function _getLastSeen() {
+  return localStorage.getItem('ann_last_seen') || '0';
+}
+
+function _hasUnread() {
+  if (!_announcements.length) return false;
+  var lastSeen = _getLastSeen();
+  return _announcements.some(function(a) { return a.createdAt > lastSeen; });
+}
+
+function _updateBellBadge() {
+  var badge = document.getElementById('bellBadge');
+  if (!badge) return;
+  _hasUnread() ? badge.classList.add('show') : badge.classList.remove('show');
+}
+
+function _relativeTime(isoStr) {
+  var diff = Date.now() - new Date(isoStr).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(isoStr).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+}
+
+function _escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openAnnouncements() {
+  var adminForm = document.getElementById('annAdminForm');
+  if (adminForm) adminForm.style.display = isAdmin ? 'block' : 'none';
+  localStorage.setItem('ann_last_seen', new Date().toISOString());
+  _updateBellBadge();
+  _renderAnnList();
+  document.getElementById('annModal').classList.add('show');
+}
+
+function _renderAnnList() {
+  var list = document.getElementById('annList');
+  var lastSeen = _getLastSeen();
+  if (!_announcements.length) {
+    list.innerHTML = '<div class="ann-empty"><i class="ti ti-bell-off"></i><div>No announcements yet</div></div>';
+    return;
+  }
+  var sorted = _announcements.slice().sort(function(a,b){ return new Date(b.createdAt) - new Date(a.createdAt); });
+  list.innerHTML = sorted.map(function(a) {
+    var isNew = a.createdAt > lastSeen;
+    return '<div class="ann-card">' +
+      '<div class="ann-card-top">' +
+        '<div class="ann-card-emoji">' + (a.emoji || '📢') + '</div>' +
+        '<div class="ann-card-info">' +
+          '<div class="ann-card-heading">' + _escHtml(a.heading) + '</div>' +
+          '<div class="ann-card-body">' + _escHtml(a.body) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ann-card-footer">' +
+        '<span class="ann-card-date"><i class="ti ti-clock" style="font-size:11px"></i> ' + _relativeTime(a.createdAt) + '</span>' +
+        (isAdmin
+          ? '<button onclick="deleteAnnouncement(\'' + a._id + '\')" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:3px 6px;border-radius:6px;display:flex;align-items:center;gap:3px;font-size:13px"><i class="ti ti-trash"></i></button>'
+          : (isNew ? '<span class="ann-new-badge">NEW</span>' : '')) +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function closeAnnouncements() {
+  document.getElementById('annModal').classList.remove('show');
+}
+
+function closeAnnOutside(e) {
+  if (e.target.id === 'annModal') closeAnnouncements();
+}
+
+async function postAnnouncement() {
+  var emoji = document.getElementById('annEmojiInput').value.trim() || '📢';
+  var heading = document.getElementById('annHeadingInput').value.trim();
+  var body = document.getElementById('annBodyInput').value.trim();
+  if (!heading || !body) return toast('Please fill heading and body!', 'error');
+  var btn = document.getElementById('annPostBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 0.8s linear infinite;display:inline-block"></i> Posting...';
+  try {
+    var r = await apiFetch('/api/announcements', 'POST', { emoji, heading, body });
+    _announcements.push(r);
+    document.getElementById('annEmojiInput').value = '';
+    document.getElementById('annHeadingInput').value = '';
+    document.getElementById('annBodyInput').value = '';
+    _renderAnnList();
+    toast('Announcement posted! 🔔', 'success');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-send"></i> Post';
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement?')) return;
+  try {
+    await apiFetch('/api/announcements/' + id, 'DELETE');
+    _announcements = _announcements.filter(function(a){ return a._id !== id; });
+    _renderAnnList();
+    toast('Deleted!', 'success');
+  } catch(e) {
+    toast('Error', 'error');
   }
 }
 </script>
